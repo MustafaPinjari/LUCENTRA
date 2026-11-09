@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    LUCENTRA Environment Diagnostics & Tooling Verification Script
+    LUCENTRA Environment Diagnostics and Tooling Verification Script
 .DESCRIPTION
     Checks presence and versions of Node.js, npm, Python, pip, Git, Foundry (forge),
     and Docker required for full-stack LUCENTRA development.
@@ -9,7 +9,7 @@
 $ErrorActionPreference = "Continue"
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "   LUCENTRA — Development Environment Diagnostic Utility        " -ForegroundColor Cyan
+Write-Host "   LUCENTRA -- Development Environment Diagnostic Utility        " -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -89,7 +89,7 @@ $forgeFound = Check-Tool -Name "Foundry (forge)" -Command "forge" -CommandArgs @
 
 # 7. Docker
 $null = Check-Tool -Name "Docker" -Command "docker" -CommandArgs @("--version") `
-    -RequiredVersionDesc "Docker Engine / Desktop for local Postgres & Redis" `
+    -RequiredVersionDesc "Docker Engine / Desktop for local Postgres and Redis" `
     -InstallHelp "https://www.docker.com/products/docker-desktop/" `
     -Mandatory $false
 

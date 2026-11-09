@@ -8,7 +8,7 @@
 $ErrorActionPreference = "Stop"
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "   LUCENTRA — Dashboard Subsystem Initialization (Next.js)       " -ForegroundColor Cyan
+Write-Host "   LUCENTRA -- Dashboard Subsystem Initialization (Next.js)       " -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 
 $DashboardDir = Join-Path $PSScriptRoot "..\apps\dashboard"

@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    LUCENTRA Monorepo Initialization & Setup Script
+    LUCENTRA Monorepo Initialization and Setup Script
 .DESCRIPTION
     Sets up the monorepo workspace directory tree, copies local environment templates,
     and runs diagnostic environment checks.
@@ -9,7 +9,7 @@
 $ErrorActionPreference = "Stop"
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "   LUCENTRA — Monorepo Workspace Initialization                  " -ForegroundColor Cyan
+Write-Host "   LUCENTRA -- Monorepo Workspace Initialization                  " -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 Write-Host ""
 

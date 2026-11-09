@@ -80,7 +80,25 @@ This document provides official, reproducible cryptographic test vectors for SHA
 
 ---
 
-## 5. Related Documents
+## 5. Test Vector 4: EAS Attestation Validity Evaluation
+
+Formal evaluation vectors testing the five-tier validity formula:
+$$\mathcal{V}(A, T_{\text{eval}}) \equiv (A.\text{uid} \neq \mathbf{0}) \land (A.\text{revocationTime} == 0) \land (A.\text{expirationTime} == 0 \lor T_{\text{eval}} \le A.\text{expirationTime}) \land (\text{isKeyAuthorized}(A.\text{domain}, A.\text{attester}) == \text{true})$$
+
+| Test ID | Evaluation Scenario | $A.\text{uid}$ | $A.\text{time}$ | $A.\text{revocationTime}$ | $A.\text{expirationTime}$ | $T_{\text{eval}}$ | $\mathcal{K}$ (Key Auth) | Expected Verdict $\mathcal{V}(A, T_{\text{eval}})$ | Protocol State |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **TV-EAS-001** | Valid active bounded release | `0x1111...` | 1,700,000,000 | 0 | 1,735,689,600 | 1,715,000,000 | `true` | **`true` (PASS)** | `VERIFIED_RELEASE_MATCH` |
+| **TV-EAS-002** | Expired release ($T_{\text{eval}} > \text{expiry}$) | `0x2222...` | 1,700,000,000 | 0 | 1,710,000,000 | 1,715,000,000 | `true` | **`false` (FAIL)** | `UNATTESTED_RELEASE` |
+| **TV-EAS-003** | Explicitly revoked release | `0x3333...` | 1,700,000,000 | 1,705,000,000 | 1,735,689,600 | 1,715,000,000 | `true` | **`false` (FAIL)** | `REVOKED_RELEASE` |
+| **TV-EAS-004** | Valid indefinite release ($\text{expiry} = 0$) | `0x4444...` | 1,700,000,000 | 0 | 0 | 1,800,000,000 | `true` | **`true` (PASS)** | `VERIFIED_RELEASE_MATCH` |
+| **TV-EAS-005** | Revoked publisher signing key | `0x5555...` | 1,700,000,000 | 0 | 1,735,689,600 | 1,715,000,000 | `false` | **`false` (FAIL)** | `REVOKED_RELEASE` |
+| **TV-EAS-006** | Non-existent attestation UID | `0x0000...` | 0 | 0 | 0 | 1,715,000,000 | `true` | **`false` (FAIL)** | `UNATTESTED_RELEASE` |
+| **TV-EAS-007** | Boundary: exactly at expiration | `0x7777...` | 1,700,000,000 | 0 | 1,715,000,000 | 1,715,000,000 | `true` | **`true` (PASS)** | `VERIFIED_RELEASE_MATCH` |
+| **TV-EAS-008** | Boundary: 1 second past expiry | `0x8888...` | 1,700,000,000 | 0 | 1,715,000,000 | 1,715,000,001 | `true` | **`false` (FAIL)** | `UNATTESTED_RELEASE` |
+
+---
+
+## 6. Related Documents
 
 - [docs/04-protocol/CANONICALIZATION.md](../04-protocol/CANONICALIZATION.md)
 - [docs/05-cryptography/EIP712_SIGNING.md](EIP712_SIGNING.md)

@@ -8,7 +8,7 @@
 $ErrorActionPreference = "Stop"
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "   LUCENTRA — Backend Subsystem Initialization (Django/Python)   " -ForegroundColor Cyan
+Write-Host "   LUCENTRA -- Backend Subsystem Initialization (Django/Python)   " -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 
 $BackendDir = Join-Path $PSScriptRoot "..\services\backend"
@@ -22,20 +22,20 @@ Set-Location $BackendDir
 # Create requirements.txt if not present
 if (-not (Test-Path "requirements.txt")) {
     $reqs = @"
-# Core Framework & API
+# Core Framework and API
 Django>=5.0,<5.2
 djangorestframework>=3.15.0
 django-cors-headers>=4.3.1
 django-environ>=0.11.2
 
-# Database & Cache
+# Database and Cache
 psycopg2-binary>=2.9.9
 redis>=5.0.3
 
 # Asynchronous Tasks
 celery>=5.3.6
 
-# Web3 & Cryptography
+# Web3 and Cryptography
 web3>=6.15.1
 eth-account>=0.11.0
 pycryptodome>=3.20.0
@@ -43,7 +43,7 @@ idna>=3.6
 dnspython>=2.6.1
 requests>=2.31.0
 
-# Testing & Quality
+# Testing and Quality
 pytest>=8.1.1
 pytest-django>=4.8.0
 black>=24.3.0
@@ -57,7 +57,7 @@ flake8>=7.0.0
 $VenvPath = Join-Path $BackendDir ".venv"
 if (-not (Test-Path $VenvPath)) {
     Write-Host "Creating Python virtual environment in services/backend/.venv..." -ForegroundColor Yellow
-    & python -m venv .venv
+    and python -m venv .venv
     Write-Host "Virtual environment created!" -ForegroundColor Green
 } else {
     Write-Host "Virtual environment services/backend/.venv already exists." -ForegroundColor Gray
@@ -67,7 +67,7 @@ $pipExe = Join-Path $VenvPath "Scripts\pip.exe"
 if (Test-Path $pipExe) {
     Write-Host "Virtual environment pip found at $pipExe" -ForegroundColor Green
     Write-Host "To install dependencies into the backend virtualenv, run:" -ForegroundColor Cyan
-    Write-Host "  & `"$pipExe`" install -r requirements.txt" -ForegroundColor White
+    Write-Host "  and `"$pipExe`" install -r requirements.txt" -ForegroundColor White
 }
 
 Set-Location $PSScriptRoot\..

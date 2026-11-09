@@ -12,7 +12,7 @@ param (
 $ErrorActionPreference = "Continue"
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "   LUCENTRA — Local Development Orchestrator                     " -ForegroundColor Cyan
+Write-Host "   LUCENTRA -- Local Development Orchestrator                     " -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -57,7 +57,7 @@ switch ($Service.ToLower()) {
         }
         Write-Host "Starting Next.js dashboard on http://localhost:3000..." -ForegroundColor Green
         Set-Location "apps/dashboard"
-        & $npmCmd run dev
+        and $npmCmd run dev
     }
     "backend" {
         $pyExe = "services/backend/.venv/Scripts/python.exe"
@@ -67,7 +67,7 @@ switch ($Service.ToLower()) {
         }
         Write-Host "Starting Django server on http://localhost:8000..." -ForegroundColor Green
         Set-Location "services/backend"
-        & $pyExe manage.py runserver 0.0.0.0:8000
+        and $pyExe manage.py runserver 0.0.0.0:8000
     }
     "extension" {
         if (-not (Test-Path "apps/extension/package.json")) {
@@ -76,7 +76,7 @@ switch ($Service.ToLower()) {
         }
         Write-Host "Starting Extension Vite watcher..." -ForegroundColor Green
         Set-Location "apps/extension"
-        & $npmCmd run watch
+        and $npmCmd run watch
     }
     "anvil" {
         $anvilCmd = Get-Command "anvil" -ErrorAction SilentlyContinue
@@ -85,7 +85,7 @@ switch ($Service.ToLower()) {
             exit 1
         }
         Write-Host "Starting local Ethereum Anvil testnode on http://127.0.0.1:8545..." -ForegroundColor Green
-        & anvil --chain-id 31337
+        and anvil --chain-id 31337
     }
     default {
         Show-Status

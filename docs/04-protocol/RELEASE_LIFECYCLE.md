@@ -23,7 +23,7 @@ stateDiagram-v2
     ATTESTED --> ACTIVE : Backend indexes release & caches manifest
     
     ACTIVE --> SUPERSEDED : Publisher deploys & attests newer release version
-    ACTIVE --> EXPIRED : current_time > manifest.expiresAt
+    ACTIVE --> EXPIRED : T_eval > manifest.expiresAt (or attestation expirationTime)
     ACTIVE --> REVOKED : Publisher triggers emergency on-chain revocation
     
     SUPERSEDED --> [*]

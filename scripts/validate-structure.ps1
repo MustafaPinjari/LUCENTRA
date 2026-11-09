@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    LUCENTRA Repository Layout & Integrity Validator
+    LUCENTRA Repository Layout and Integrity Validator
 .DESCRIPTION
     Validates existence of root governance files, documentation directories,
     markdown link integrity, and status taxonomy conformance.
@@ -9,14 +9,14 @@
 $ErrorActionPreference = "Stop"
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "   LUCENTRA — Repository Structure & Integrity Validator         " -ForegroundColor Cyan
+Write-Host "   LUCENTRA -- Repository Structure and Integrity Validator         " -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 Write-Host ""
 
 $ErrorsFound = 0
 
-# 1. Check Root Governance & Config Files
-Write-Host "[1/4] Checking Root Governance & Configuration Files..." -ForegroundColor Yellow
+# 1. Check Root Governance and Config Files
+Write-Host "[1/4] Checking Root Governance and Configuration Files..." -ForegroundColor Yellow
 $RequiredRootFiles = @(
     "AGENTS.md",
     "README.md",
@@ -72,8 +72,8 @@ foreach ($dir in $RequiredDocDirs) {
     }
 }
 
-# 3. Check Audit & Deliverable Reports
-Write-Host "`n[3/4] Checking Master Audit & Index Reports..." -ForegroundColor Yellow
+# 3. Check Audit and Deliverable Reports
+Write-Host "`n[3/4] Checking Master Audit and Index Reports..." -ForegroundColor Yellow
 $RequiredReports = @(
     "docs/DOCUMENTATION_INDEX.md",
     "docs/DOCUMENTATION_AUDIT_REPORT.md",

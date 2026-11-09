@@ -8,7 +8,7 @@
 $ErrorActionPreference = "Stop"
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "   LUCENTRA — Extension Subsystem Initialization (Chrome MV3)    " -ForegroundColor Cyan
+Write-Host "   LUCENTRA -- Extension Subsystem Initialization (Chrome MV3)    " -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 
 $ExtensionDir = Join-Path $PSScriptRoot "..\apps\extension"
@@ -52,7 +52,7 @@ if (-not (Test-Path "manifest.json")) {
     $manifestJson = @"
 {
   "manifest_version": 3,
-  "name": "LUCENTRA — Cryptographic Web Integrity Verifier",
+  "name": "LUCENTRA -- Cryptographic Web Integrity Verifier",
   "version": "0.1.0",
   "description": "Verifies website publisher identity and JavaScript resource integrity through EAS attestations.",
   "permissions": [

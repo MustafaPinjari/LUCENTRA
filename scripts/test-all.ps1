@@ -9,7 +9,7 @@
 $ErrorActionPreference = "Continue"
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "   LUCENTRA — Full Test Suite Orchestrator                       " -ForegroundColor Cyan
+Write-Host "   LUCENTRA -- Full Test Suite Orchestrator                       " -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -17,8 +17,8 @@ $npmCmd = if (Get-Command "npm.cmd" -ErrorAction SilentlyContinue) { "npm.cmd" }
 $Failures = 0
 $ExecutedSuites = 0
 
-# 1. Structure & Documentation Validation
-Write-Host "[1/5] Validating Repository & Documentation Integrity..." -ForegroundColor Yellow
+# 1. Structure and Documentation Validation
+Write-Host "[1/5] Validating Repository and Documentation Integrity..." -ForegroundColor Yellow
 & powershell -ExecutionPolicy Bypass -File "$PSScriptRoot/validate-structure.ps1"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Structure validation FAILED!" -ForegroundColor Red
@@ -32,7 +32,7 @@ Write-Host "`n[2/5] Testing Smart Contracts (Foundry)..." -ForegroundColor Yello
 $forgeCmd = Get-Command "forge" -ErrorAction SilentlyContinue
 if ($forgeCmd -and (Test-Path "contracts/foundry.toml")) {
     Push-Location "contracts"
-    & forge test -vvv
+    and forge test -vvv
     if ($LASTEXITCODE -ne 0) { $Failures++ }
     $ExecutedSuites++
     Pop-Location
@@ -45,7 +45,7 @@ Write-Host "`n[3/5] Testing Backend Services (pytest)..." -ForegroundColor Yello
 $pyTestExe = "services/backend/.venv/Scripts/pytest.exe"
 if (Test-Path $pyTestExe) {
     Push-Location "services/backend"
-    & $pyTestExe
+    and $pyTestExe
     if ($LASTEXITCODE -ne 0) { $Failures++ }
     $ExecutedSuites++
     Pop-Location
@@ -59,7 +59,7 @@ if (Test-Path "apps/dashboard/package.json") {
     Push-Location "apps/dashboard"
     $pkg = Get-Content "package.json" -Raw | ConvertFrom-Json
     if ($pkg.scripts.test) {
-        & $npmCmd test
+        and $npmCmd test
         if ($LASTEXITCODE -ne 0) { $Failures++ }
         $ExecutedSuites++
     } else {
@@ -76,7 +76,7 @@ if (Test-Path "apps/extension/package.json") {
     Push-Location "apps/extension"
     $pkg = Get-Content "package.json" -Raw | ConvertFrom-Json
     if ($pkg.scripts.test) {
-        & $npmCmd test
+        and $npmCmd test
         if ($LASTEXITCODE -ne 0) { $Failures++ }
         $ExecutedSuites++
     } else {

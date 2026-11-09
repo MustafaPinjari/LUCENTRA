@@ -29,6 +29,7 @@ All individual decision records are located in `docs/03-architecture/decisions/`
 | [ADR-008](decisions/ADR-008.md) | Chrome Manifest V3 Architecture | **APPROVED** | Extension Engineer, System Architect | Fully compliant with modern Chrome security boundaries; Web Worker hashing. |
 | [ADR-009](decisions/ADR-009.md) | Independent Witness Observation Model | **APPROVED** | Security Architect, Protocol Architect | Autonomous multi-party observers to detect split-view / targeted attacks. |
 | [ADR-010](decisions/ADR-010.md) | Off-Chain Manifest Storage with Content Addressing | **APPROVED** | Backend Engineer, System Architect | Manifests stored in DB/CDN; verified by on-chain SHA-256 root digest. |
+| [ADR-011](decisions/ADR-011.md) | Dual-Authorization Domain Registration | **PROPOSED** | Chief Architect, Security Architect, Mustafa | EIP-712 publisher intent binding + registrar DNS TXT validation. |
 
 ---
 

@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    LUCENTRA Code Style & Linter Orchestration Script
+    LUCENTRA Code Style and Linter Orchestration Script
 .DESCRIPTION
     Runs linters, formatting checks, and structural validation across the monorepo.
 #>
@@ -8,23 +8,23 @@
 $ErrorActionPreference = "Continue"
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "   LUCENTRA — Monorepo Lint & Style Validation                   " -ForegroundColor Cyan
+Write-Host "   LUCENTRA -- Monorepo Lint and Style Validation                   " -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 Write-Host ""
 
 $npmCmd = if (Get-Command "npm.cmd" -ErrorAction SilentlyContinue) { "npm.cmd" } else { "npm" }
 $Failures = 0
 
-# 1. Structural & Link Integrity
-Write-Host "[1/3] Validating Documentation & Structure..." -ForegroundColor Yellow
+# 1. Structural and Link Integrity
+Write-Host "[1/3] Validating Documentation and Structure..." -ForegroundColor Yellow
 & powershell -ExecutionPolicy Bypass -File "$PSScriptRoot/validate-structure.ps1"
 if ($LASTEXITCODE -ne 0) { $Failures++ }
 
 # 2. Frontend / Extension Linting
-Write-Host "`n[2/3] Checking Frontend & Extension Code Style..." -ForegroundColor Yellow
+Write-Host "`n[2/3] Checking Frontend and Extension Code Style..." -ForegroundColor Yellow
 if (Test-Path "apps/dashboard/node_modules") {
     Push-Location "apps/dashboard"
-    & $npmCmd run lint
+    and $npmCmd run lint
     if ($LASTEXITCODE -ne 0) { $Failures++ }
     Pop-Location
 } else {
@@ -36,7 +36,7 @@ Write-Host "`n[3/3] Checking Backend Python Code Style..." -ForegroundColor Yell
 $flake8Exe = "services/backend/.venv/Scripts/flake8.exe"
 if (Test-Path $flake8Exe) {
     Push-Location "services/backend"
-    & $flake8Exe . --count --select=E9,F63,F7,F82 --show-source --statistics
+    and $flake8Exe . --count --select=E9,F63,F7,F82 --show-source --statistics
     if ($LASTEXITCODE -ne 0) { $Failures++ }
     Pop-Location
 } else {

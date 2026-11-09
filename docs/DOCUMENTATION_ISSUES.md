@@ -110,6 +110,34 @@ This document tracks all architectural discrepancies, documentation gaps, broken
 
 ---
 
+### ISS-007: Independent Establishment of Domain DNS Ownership and Publisher Wallet Authorization
+- **Severity:** HIGH (Architectural Security Enhancement)
+- **Status:** PROPOSED (Awaiting Stakeholder Approval in ADR-011)
+- **Component:** `docs/03-architecture/decisions/ADR-011.md`, `contracts/src/PublisherRegistry.sol`
+- **Description:** In the registrar-mediated architecture (ADR-002, ADR-006), the registrar verifies DNS TXT records and submits `registerPublisherDomain(domain, owner, initialSigningKey)`. While front-running in the mempool is prevented, the publisher's wallet never signs an explicit on-chain authorization, leaving unilateral power with the registrar key.
+- **Root Cause:** Single-point-of-trust in the registrar role for initial domain assignment.
+- **Resolution (Proposed):**
+  - Formulated ADR-011: Dual-Authorization Domain Registration.
+  - Publisher signs an EIP-712 `RegistrationAuthorization(string domain,address publisher,address initialSigningKey,uint256 nonce,uint64 deadline)` intent.
+  - Smart contract validates both `msg.sender == registrar` (verifying off-chain DNS proof) AND recovers the publisher's EIP-712 signature (verifying publisher consent and non-repudiation).
+  - Preserves registrar gas subsidization while cryptographically blocking a rogue registrar from assigning domains to arbitrary addresses.
+  - Status set to PROPOSED pending Mustafa's review.
+
+---
+
+### ISS-008: Dynamic Attestation Expiration Evaluation vs. Creation Timestamp
+- **Severity:** MEDIUM (Protocol Evaluation Integrity)
+- **Status:** RESOLVED
+- **Component:** `docs/06-blockchain/EAS_INTEGRATION.md`, `docs/05-cryptography/CRYPTOGRAPHIC_TEST_VECTORS.md`
+- **Description:** Previous validity checks used informal `now` or ambiguous timestamps that risked comparing creation time $A.\text{time} \le A.\text{expirationTime}$ rather than current wall-clock evaluation time $T_{\text{eval}}$.
+- **Root Cause:** Lack of formal separation between the 5 evaluation tiers (existence, revocation, expiration against $T_{\text{eval}}$, key authorization, release status).
+- **Resolution:**
+  - Formalized the 5-Tier Verification Framework in `EAS_INTEGRATION.md`:
+    $$\mathcal{V}(A, T_{\text{eval}}) \equiv (A.\text{uid} \neq \mathbf{0}) \land (A.\text{revocationTime} == 0) \land (A.\text{expirationTime} == 0 \lor T_{\text{eval}} \le A.\text{expirationTime}) \land (\text{isKeyAuthorized}(A.\text{domain}, A.\text{attester}) == \text{true})$$
+  - Added formal test vectors `TV-EAS-001` through `TV-EAS-008` in `CRYPTOGRAPHIC_TEST_VECTORS.md` covering valid, expired ($T_{\text{eval}} > \text{expiry}$), revoked, indefinite, revoked key, non-existent UID, and boundary edge cases.
+
+---
+
 ## 3. Open Items Requiring Stakeholder Approval (Mustafa)
 
 The following items are architecturally scoped and documented, but require explicit business and operational sign-off:

@@ -15,37 +15,134 @@ This document specifies the technical integration between LUCENTRA and the Ether
 
 ## 2. Resolving the Immutability vs. Revocation Concept
 
-A foundational architectural concept in EAS is the distinction between **historical persistence** and **current validity**:
+A foundational architectural concept in EAS is the formal distinction between **historical persistence** and **current validity**:
 
 ```mermaid
-flowchart LR
-    subgraph OnChainState["EAS On-Chain State"]
-        AttestationRecord["Attestation UID Record<br/>(Permanently Immutable on EVM)"]
-        RevocationField["revocationTime Field<br/>(0 if active; timestamp if revoked)"]
-        ExpirationField["expirationTime Field<br/>(0 if indefinite; timestamp if bounded)"]
+flowchart TD
+    subgraph OnChainRecord["EAS Attestation On-Chain Record (Immutable)"]
+        AttestationUID["Attestation UID<br/>(bytes32 != 0)"]
+        CreationTime["A.time<br/>(Creation Timestamp)"]
+        RevocationField["A.revocationTime<br/>(0 if unrevoked; timestamp if revoked)"]
+        ExpirationField["A.expirationTime<br/>(0 if indefinite; timestamp if bounded)"]
+        AttesterKey["A.attester<br/>(secp256k1 Signing Address)"]
     end
 
-    subgraph ClientEvaluation["Client Verification Engine"]
-        Check1["1. Does Attestation Exist?"]
-        Check2["2. revocationTime == 0?"]
-        Check3["3. block.timestamp <= expirationTime?"]
-        Check4["4. Was attestor key authorized in PublisherRegistry?"]
-        Check5["5. Is signing key unrevoked in PublisherRegistry?"]
+    subgraph EvaluationEnvironment["Evaluation Context at T_eval"]
+        CurrentTime["T_eval<br/>(Current Wall-Clock / block.timestamp)"]
+        RegistryContract["PublisherRegistry.sol<br/>isKeyAuthorized(domain, attester)"]
     end
 
-    AttestationRecord --> Check1
-    RevocationField --> Check2
-    ExpirationField --> Check3
-    Check1 & Check2 & Check3 & Check4 & Check5 --> Verdict{Currently Valid Release?}
-    Verdict -- Yes --> Valid[ACTIVE_RELEASE]
-    Verdict -- No --> Invalid[REVOKED / EXPIRED]
+    subgraph FiveTiers["Five Independent Verification Tiers"]
+        Tier1["Tier 1: Historical Existence<br/>A.uid != 0"]
+        Tier2["Tier 2: Revocation Status<br/>A.revocationTime == 0"]
+        Tier3["Tier 3: Expiration Status<br/>A.expirationTime == 0 OR T_eval <= A.expirationTime"]
+        Tier4["Tier 4: Key Authorization<br/>PublisherRegistry.isKeyAuthorized == true"]
+        Tier5["Tier 5: Current Release Verification Status<br/>V(A, T_eval) = Tier1 AND Tier2 AND Tier3 AND Tier4"]
+    end
+
+    AttestationUID --> Tier1
+    RevocationField --> Tier2
+    ExpirationField & CurrentTime --> Tier3
+    AttesterKey & RegistryContract --> Tier4
+    Tier1 & Tier2 & Tier3 & Tier4 --> Tier5
+    Tier5 -- Evaluates True --> ActiveRelease["ACTIVE_VALID_RELEASE"]
+    Tier5 -- Evaluates False --> InactiveRelease["EXPIRED / REVOKED / UNATTESTED"]
 ```
 
-1. **Historical Attestation Persistence:** Once submitted to EAS, an attestation record is **permanently immutable**. It exists in Ethereum contract storage and event history forever. No entity—not even the publisher or contract owner—can delete or alter its historical parameters (`manifestHash`, `domain`, `version`, `signature`).
-2. **Revocation Semantics:** When an attestation is registered with `revocable = true`, the authorized attestor can invoke `eas.revoke(RevocationRequest)` on-chain. This does **not** erase the attestation; instead, it writes `revocationTime = block.timestamp` onto the attestation's on-chain record.
-3. **Expiration:** If an attestation specifies a non-zero `expirationTime`, clients treat the release as expired when `block.timestamp > expirationTime`.
-4. **Current Validity Check:** A client evaluates an attestation as currently valid if and only if:
-   $$\text{exists}(\text{UID}) \land \text{revocationTime} = 0 \land (\text{expirationTime} = 0 \lor \text{now} \le \text{expirationTime}) \land \text{isKeyAuthorized}(\text{domain}, \text{attester})$$
+### 2.1 The Five Verification Tiers
+
+1. **Tier 1 — Historical Attestation Existence $\mathcal{E}(A)$:**
+   Once submitted to EAS, an attestation record is permanently immutable on Ethereum. It exists in contract storage and event history forever.
+   $$\mathcal{E}(A) \equiv (A.\text{uid} \neq \mathbf{0})$$
+
+2. **Tier 2 — Attestation Revocation Status $\mathcal{R}(A)$:**
+   When an attestation is registered with `revocable = true`, the publisher can call `eas.revoke(RevocationRequest)`. This does not delete the record; it records `A.revocationTime = block.timestamp`.
+   $$\mathcal{R}(A) \equiv (A.\text{revocationTime} \neq 0)$$
+   An attestation is unrevoked if and only if $\neg \mathcal{R}(A) \iff A.\text{revocationTime} == 0$.
+
+3. **Tier 3 — Attestation Expiration Status $\mathcal{X}(A, T_{\text{eval}})$:**
+   Expiration is evaluated strictly against the **current evaluation timestamp** $T_{\text{eval}}$ (the client's current wall-clock Unix time in seconds, or `block.timestamp` during smart contract execution).
+   > [!IMPORTANT]
+   > Expiration is **never** checked against the attestation creation timestamp $A.\text{time}$. Comparing $A.\text{time} \le A.\text{expirationTime}$ only proves the attestation was valid at the instant it was minted. The verification engine must dynamically evaluate $T_{\text{eval}} \le A.\text{expirationTime}$.
+   $$\mathcal{X}(A, T_{\text{eval}}) \equiv (A.\text{expirationTime} \neq 0 \land T_{\text{eval}} > A.\text{expirationTime})$$
+   An attestation is non-expired if and only if:
+   $$\neg \mathcal{X}(A, T_{\text{eval}}) \iff (A.\text{expirationTime} == 0 \lor T_{\text{eval}} \le A.\text{expirationTime})$$
+
+4. **Tier 4 — Publisher Signing-Key Authorization $\mathcal{K}(\text{domain}, A.\text{attester})$:**
+   Evaluates whether the address that signed the attestation is currently registered and active in `PublisherRegistry.sol`.
+   $$\mathcal{K}(\text{domain}, A.\text{attester}) \equiv (\text{PublisherRegistry.isKeyAuthorized}(\text{domain}, A.\text{attester}) == \text{true})$$
+
+5. **Tier 5 — Current Release Verification Status $\mathcal{V}(A, T_{\text{eval}})$:**
+   $$\mathcal{V}(A, T_{\text{eval}}) \equiv \mathcal{E}(A) \land \neg \mathcal{R}(A) \land \neg \mathcal{X}(A, T_{\text{eval}}) \land \mathcal{K}(A.\text{domain}, A.\text{attester})$$
+   Expanded:
+   $$\mathcal{V}(A, T_{\text{eval}}) \equiv (A.\text{uid} \neq \mathbf{0}) \land (A.\text{revocationTime} == 0) \land (A.\text{expirationTime} == 0 \lor T_{\text{eval}} \le A.\text{expirationTime}) \land (\text{isKeyAuthorized}(A.\text{domain}, A.\text{attester}) == \text{true})$$
+
+---
+
+### 2.2 Formal Test Vectors for Attestation Validity
+
+The following test suite formally establishes evaluation outputs across all lifecycle permutations:
+
+| Test Vector ID | Description | $A.\text{uid}$ | $A.\text{time}$ | $A.\text{revocationTime}$ | $A.\text{expirationTime}$ | $T_{\text{eval}}$ | $\mathcal{K}$ (Key Auth) | Expected Verdict $\mathcal{V}(A, T_{\text{eval}})$ | Resulting Protocol State |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **TV-EAS-001** | Valid bounded release | `0x1111...` | 1,700,000,000 | 0 | 1,735,689,600 | 1,715,000,000 | `true` | **`true` (PASS)** | `VERIFIED_RELEASE_MATCH` |
+| **TV-EAS-002** | Expired release | `0x2222...` | 1,700,000,000 | 0 | 1,710,000,000 | 1,715,000,000 | `true` | **`false` (FAIL)** | `UNATTESTED_RELEASE` |
+| **TV-EAS-003** | Explicitly revoked release | `0x3333...` | 1,700,000,000 | 1,705,000,000 | 1,735,689,600 | 1,715,000,000 | `true` | **`false` (FAIL)** | `REVOKED_RELEASE` |
+| **TV-EAS-004** | Valid indefinite release | `0x4444...` | 1,700,000,000 | 0 | 0 | 1,800,000,000 | `true` | **`true` (PASS)** | `VERIFIED_RELEASE_MATCH` |
+| **TV-EAS-005** | Revoked publisher signing key | `0x5555...` | 1,700,000,000 | 0 | 1,735,689,600 | 1,715,000,000 | `false` | **`false` (FAIL)** | `REVOKED_RELEASE` |
+| **TV-EAS-006** | Non-existent attestation UID | `0x0000...` | 0 | 0 | 0 | 1,715,000,000 | `true` | **`false` (FAIL)** | `UNATTESTED_RELEASE` |
+| **TV-EAS-007** | Boundary: exactly at expiration | `0x7777...` | 1,700,000,000 | 0 | 1,715,000,000 | 1,715,000,000 | `true` | **`true` (PASS)** | `VERIFIED_RELEASE_MATCH` |
+| **TV-EAS-008** | Boundary: 1 second past expiry | `0x8888...` | 1,700,000,000 | 0 | 1,715,000,000 | 1,715,000,001 | `true` | **`false` (FAIL)** | `UNATTESTED_RELEASE` |
+
+### 2.3 Reference Verification Implementation (TypeScript)
+
+```typescript
+export interface EASAttestationRecord {
+  uid: string;
+  time: number;           // Creation timestamp
+  expirationTime: number; // 0 if indefinite
+  revocationTime: number; // 0 if active
+  attester: string;       // Signing address
+  data: string;
+}
+
+export interface VerificationContext {
+  domain: string;
+  evaluationTime: number; // Current wall-clock Unix seconds: Math.floor(Date.now() / 1000)
+  isKeyAuthorized: (domain: string, key: string) => Promise<boolean>;
+}
+
+export async function evaluateAttestationValidity(
+  attestation: EASAttestationRecord,
+  ctx: VerificationContext
+): Promise<{ isValid: boolean; reason?: string }> {
+  // Tier 1: Existence
+  if (!attestation.uid || attestation.uid === "0x0000000000000000000000000000000000000000000000000000000000000000") {
+    return { isValid: false, reason: "Attestation does not exist on-chain" };
+  }
+
+  // Tier 2: Revocation
+  if (attestation.revocationTime !== 0) {
+    return { isValid: false, reason: `Attestation revoked at timestamp ${attestation.revocationTime}` };
+  }
+
+  // Tier 3: Expiration (checked against current evaluation time)
+  if (attestation.expirationTime !== 0 && ctx.evaluationTime > attestation.expirationTime) {
+    return { 
+      isValid: false, 
+      reason: `Attestation expired at ${attestation.expirationTime} (evaluation time: ${ctx.evaluationTime})` 
+    };
+  }
+
+  // Tier 4: Key Authorization
+  const authorized = await ctx.isKeyAuthorized(ctx.domain, attestation.attester);
+  if (!authorized) {
+    return { isValid: false, reason: `Signing key ${attestation.attester} is not authorized for ${ctx.domain}` };
+  }
+
+  return { isValid: true };
+}
+```
 
 ---
 

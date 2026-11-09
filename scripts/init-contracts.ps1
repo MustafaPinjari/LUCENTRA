@@ -9,7 +9,7 @@
 $ErrorActionPreference = "Stop"
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host "   LUCENTRA — Contracts Subsystem Initialization (Foundry)       " -ForegroundColor Cyan
+Write-Host "   LUCENTRA -- Contracts Subsystem Initialization (Foundry)       " -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 
 $ContractsDir = Join-Path $PSScriptRoot "..\contracts"
@@ -35,7 +35,7 @@ if (-not $forgeCmd) {
 } else {
     if (-not (Test-Path "foundry.toml")) {
         Write-Host "Initializing Foundry project with forge init..." -ForegroundColor Green
-        & forge init --no-commit --force
+        and forge init --no-commit --force
     } else {
         Write-Host "Foundry project already initialized in contracts/." -ForegroundColor Gray
     }

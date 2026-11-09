@@ -83,6 +83,7 @@ This catalogue indexes all architectural, protocol, cryptographic, security, imp
 | [`decisions/ADR-008.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/03-architecture/decisions/ADR-008.md) | Chrome Manifest V3 extension architecture | APPROVED | None | Extension Engineers |
 | [`decisions/ADR-009.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/03-architecture/decisions/ADR-009.md) | Independent multi-party witness observation network | APPROVED | None | Security, Witness |
 | [`decisions/ADR-010.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/03-architecture/decisions/ADR-010.md) | Off-chain manifest storage with content-addressed roots | APPROVED | None | Backend, Architecture |
+| [`decisions/ADR-011.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/03-architecture/decisions/ADR-011.md) | Dual-authorization domain registration via EIP-712 intent binding | PROPOSED | ADR-002, ADR-006 | Chief Architect, Security, Mustafa |
 
 ---
 
