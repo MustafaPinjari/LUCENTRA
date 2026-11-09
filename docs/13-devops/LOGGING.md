@@ -50,3 +50,4 @@ A custom logging filter (`LucentraSecretFilter`) scrubs:
 ## 5. References
 
 - [Python structlog Documentation](https://www.structlog.org/)
+

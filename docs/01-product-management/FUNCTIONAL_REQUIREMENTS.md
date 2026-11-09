@@ -32,8 +32,9 @@ Requirements are categorized using standard MoSCoW prioritization and prefixed b
 - **FR-REG-001 (Domain Normalization):** The system MUST normalize all incoming domain names according to UTS #46 / IDNA 2008 standards (lowercase, strip trailing dots, strip protocols `http://`/`https://` and ports).
 - **FR-REG-002 (Cryptographic Challenge Generation):** The backend MUST generate a cryptographically secure random token (minimum 256 bits of entropy) when a publisher initiates domain verification.
 - **FR-REG-003 (DNS Record Inspection):** The backend worker MUST query authoritative DNS nameservers for a TXT record at `_lucentra-verification.<normalized_domain>` and verify the exact challenge string match.
-- **FR-REG-004 (On-Chain Registry Binding):** `PublisherRegistry.sol` MUST store the mapping of normalized domain hash (`bytes32 domainHash = keccak256(bytes(normalizedDomain))`) to the authorized publisher wallet address.
-- **FR-REG-005 (Key State Management):** The contract MUST support multiple signing keys per domain with explicit statuses: `ACTIVE`, `REVOKED`, `EXPIRED`.
+- **FR-REG-004 (Registrar-Mediated Registration):** Initial on-chain domain registration MUST be restricted strictly to the authorized registrar role (`onlyRegistrar`) following successful off-chain DNS TXT validation; no public registration function permitting arbitrary claims is allowed.
+- **FR-REG-005 (Publisher Key Governance):** `PublisherRegistry.sol` MUST grant the verified domain owner address exclusive authority (`onlyDomainOwner`) to authorize and revoke operational release signing keys. The registrar CANNOT alter signing keys of registered domains.
+- **FR-REG-006 (Key State Invariant):** Once revoked by the publisher owner, a signing key MUST transition permanently to `REVOKED` and can never be reactivated.
 
 ### 3.2 Manifest Schema & Canonicalization (`FR-MAN`)
 
@@ -47,17 +48,18 @@ Requirements are categorized using standard MoSCoW prioritization and prefixed b
 - **FR-SIG-001 (EIP-712 Domain Separator):** Signatures MUST use an EIP-712 domain separator specifying `name: "LUCENTRA"`, `version: "1"`, `chainId`, and `verifyingContract`.
 - **FR-SIG-002 (EIP-712 Type Hash):** The structured type for signing MUST be:
   `ReleaseManifest(string domain,string version,bytes32 manifestHash,uint64 timestamp,uint64 expiresAt)`.
-- **FR-SIG-003 (EAS Schema Definition):** The system MUST register an official EAS schema on Ethereum Sepolia and Mainnet:
+- **FR-SIG-003 (EAS Schema Definition):** The system MUST register an official EAS schema on Ethereum Sepolia and Arbitrum One:
   `bytes32 manifestHash, string domain, string version, bytes signature`.
-- **FR-SIG-004 (On-Chain Attestation Verification):** Verification clients MUST be able to query the EAS contract or indexing subgraph to confirm attestation validity and revocations.
+- **FR-SIG-004 (On-Chain Attestation & Revocation Verification):** Verification clients MUST verify that the attestation UID exists on EAS, that `revocationTime == 0`, that the attestation is not expired, and that the attestor key was authorized in `PublisherRegistry.sol`.
 
 ### 3.4 Chrome Extension Verification Engine (`FR-EXT`)
 
-- **FR-EXT-001 (DOM Script Detection):** The extension content script MUST detect all `<script>` tags present in the initial DOM and any dynamically inserted scripts via a `MutationObserver`.
-- **FR-EXT-002 (Asynchronous Script Hashing):** The extension MUST fetch script byte streams and calculate SHA-256 digests in an isolated Web Worker off the main execution thread.
-- **FR-EXT-003 (Cross-Origin Resource Handling):** For scripts restricted by CORS from content script context, the extension service worker MUST securely fetch the asset using privileged extension background permissions.
-- **FR-EXT-004 (Verification State Machine):** The extension MUST evaluate script hashes against the active signed manifest and transition into one of: `VERIFIED`, `MISMATCH`, `UNREGISTERED`, `UNATTESTED`, `REVOKED`.
-- **FR-EXT-005 (Security Badging):** The extension icon MUST visually reflect the current state (Green for `VERIFIED`, Amber for `UNREGISTERED`, Red with alert badge for `MISMATCH`).
+- **FR-EXT-001 (DOM Script Detection):** The extension content script MUST detect external `<script>` tags present in the initial DOM and any dynamically inserted scripts via a `MutationObserver`.
+- **FR-EXT-002 (Asynchronous Script Hashing):** The extension MUST fetch script byte streams out-of-band and calculate SHA-256 digests in an isolated Web Worker off the main execution thread.
+- **FR-EXT-003 (Cross-Origin Resource Handling):** For scripts restricted by CORS from content script context, the extension service worker MUST securely fetch the asset using privileged extension host permissions.
+- **FR-EXT-004 (Verification State Machine):** The extension MUST evaluate script hashes against the active signed manifest and transition into one of: `VERIFIED_RELEASE_MATCH`, `UNVERIFIED_RESOURCE_DETECTED`, `UNREGISTERED_PUBLISHER`, `UNATTESTED_RELEASE`, `REVOKED_RELEASE`, `INDETERMINATE`.
+- **FR-EXT-005 (Security Badging):** The extension icon MUST visually reflect the current state (Emerald Green for `VERIFIED_RELEASE_MATCH`, Amber for `UNATTESTED_RELEASE`, Rose Red with alert badge for `UNVERIFIED_RESOURCE_DETECTED`, Crimson for `REVOKED_RELEASE`).
+- **FR-EXT-006 (Verification Boundary Disclosure):** The extension UI MUST explicitly disclose that verification evaluates retrieved resource integrity against the manifest, and does not verify in-memory V8 engine execution bytes.
 
 ### 3.5 Witness Protocol (`FR-WIT`)
 
@@ -92,3 +94,4 @@ Requirements are categorized using standard MoSCoW prioritization and prefixed b
 
 - [RFC 8785: JSON Canonicalization Scheme](https://www.rfc-editor.org/rfc/rfc8785.html)
 - [EIP-712: Typed structured data hashing and signing](https://eips.ethereum.org/EIPS/eip-712)
+

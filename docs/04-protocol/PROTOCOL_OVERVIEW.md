@@ -58,3 +58,4 @@ flowchart TD
 - [RFC 8785: JSON Canonicalization Scheme](https://www.rfc-editor.org/rfc/rfc8785.html)
 - [EIP-712: Typed structured data hashing and signing](https://eips.ethereum.org/EIPS/eip-712)
 - [Ethereum Attestation Service](https://docs.attest.org/)
+

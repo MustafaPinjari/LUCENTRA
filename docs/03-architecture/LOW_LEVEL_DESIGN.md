@@ -19,9 +19,11 @@ This Low-Level Design (LLD) document specifies the concrete data structures, cla
 classDiagram
     class PublisherRegistry {
         +mapping(bytes32 => DomainRecord) domains
-        +registerDomain(string domain, address publisher, bytes backendSig)
-        +authorizeKey(string domain, address signingKey)
-        +revokeKey(string domain, address signingKey)
+        +address registrar
+        +registerPublisherDomain(string domain, address owner, address initialSigningKey)
+        +authorizeSigningKey(string domain, address signingKey)
+        +revokeSigningKey(string domain, address signingKey)
+        +setRegistrar(address newRegistrar)
         +isKeyAuthorized(string domain, address signingKey) bool
     }
 
@@ -42,8 +44,8 @@ classDiagram
         +observeDOM()
         +interceptScript(HTMLScriptElement script)
         +dispatchHashWorker(string scriptSrc) Promise~bytes32~
-        +verifyAgainstManifest(bytes32 observedHash, Manifest manifest) VerificationStatus
-        +updateBadge(VerificationStatus status)
+        +verifyAgainstManifest(bytes32 observedHash, Manifest manifest) VerificationState
+        +updateBadge(VerificationState state)
     }
 
     PublisherRegistry <|-- EIP712Signer : Verifies
@@ -135,3 +137,4 @@ class Release(models.Model):
 
 - [OpenZeppelin Contracts v5.x](https://docs.openzeppelin.com/contracts/5.x/)
 - [RFC 8785: JSON Canonicalization Scheme](https://www.rfc-editor.org/rfc/rfc8785.html)
+

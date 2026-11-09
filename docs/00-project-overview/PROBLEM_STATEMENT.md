@@ -64,7 +64,7 @@ In Web3, while smart contracts are immutable and audited, the frontend websites 
 To solve this problem conclusively, LUCENTRA must provide:
 1. **Domain-to-Publisher Identity Verification:** A verifiable, cryptographic link between a DNS domain and an authorized signing identity.
 2. **Cryptographically Signed Release Manifests:** An immutable, structured list of authorized files and their exact SHA-256 digests.
-3. **Independent Client-Side Resource Verification:** A browser extension that inspects, hashes, and validates code in real-time.
+3. **Independent Client-Side Resource Verification:** A browser extension that independently discovers, fetches, hashes, and validates external script resources against publisher-signed manifests.
 4. **Publicly Verifiable EVM Attestations:** Release hashes anchored on public ledgers via EAS.
 5. **Independent Witness Observations:** Multi-location auditing to prevent targeted or split-view attacks.
 6. **Transparent Verification Reports:** Clear, actionable, cryptographic evidence surfaced directly to end-users.
@@ -79,7 +79,8 @@ Failing to solve this problem leaves modern web applications vulnerable to catas
 
 ## 6. Known Limitations
 
-Websites that continuously inject unversioned, dynamic inline scripts or arbitrary third-party ad networks will encounter verification failures unless those scripts are properly isolated or excluded from release manifests.
+- **Browser Extension Execution Boundaries:** Client-side verification discovers script elements in the DOM and independently retrieves and hashes the corresponding resource bytes. It cannot verify exact in-memory V8 engine execution bytes, just-in-time compiled machine code, or dynamic `eval()` / inline script strings.
+- **Dynamic Third-Party Code:** Websites that continuously inject unversioned, dynamic inline scripts or arbitrary third-party ad networks will encounter verification failures unless those scripts are properly isolated or excluded from release manifests.
 
 ---
 
@@ -96,3 +97,4 @@ Websites that continuously inject unversioned, dynamic inline scripts or arbitra
 - [US CISA Advisory on Web Skimming and Magecart Attacks](https://www.cisa.gov/)
 - [W3C Subresource Integrity Recommendation](https://www.w3.org/TR/SRI/)
 - [Ledger Connect Kit Security Incident Post-Mortem (2023)](https://www.ledger.com/)
+

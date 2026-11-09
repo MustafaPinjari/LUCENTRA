@@ -46,3 +46,4 @@ def test_domain_challenge_lifecycle(api_client):
 ## 4. References
 
 - [Django REST Framework Testing](https://www.django-rest-framework.org/api-guide/testing/)
+

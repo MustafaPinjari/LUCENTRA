@@ -92,3 +92,4 @@ export async function signReleaseManifest(params: ReleaseSigningParams) {
 
 - [Viem signTypedData Documentation](https://viem.sh/docs/actions/wallet/signTypedData.html)
 - [EIP-712: Ethereum Typed Structured Data](https://eips.ethereum.org/EIPS/eip-712)
+

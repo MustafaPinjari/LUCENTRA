@@ -50,3 +50,4 @@ Navigate to `http://localhost:3000/demo-site`. Observe the toolbar icon transfor
 
 - [docs/16-user-and-developer-guides/INSTALLATION.md](INSTALLATION.md)
 - [docs/16-user-and-developer-guides/PUBLISHER_GUIDE.md](PUBLISHER_GUIDE.md)
+

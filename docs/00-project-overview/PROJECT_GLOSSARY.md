@@ -18,6 +18,7 @@ This glossary establishes precise, unambiguous definitions for domain-specific t
 ### 2.1 Core Protocol Terms
 
 - **Publisher:** The verified owner of a web domain who possesses administrative control over its DNS records and holds an authorized Ethereum signing key.
+- **Registrar:** An authorized, privileged backend signer role in `PublisherRegistry.sol` responsible for executing initial domain registrations after completing rigorous off-chain DNS TXT validation.
 - **Publisher Registry (`PublisherRegistry.sol`):** The canonical Ethereum smart contract mapping normalized domain names to publisher wallet addresses and active signing keys.
 - **Domain Normalization:** The process of converting domain strings to a lowercase, canonical, ASCII-compatible format (using UTS #46 / IDNA 2008 and removing trailing dots, protocols, and port numbers).
 - **Release Manifest:** A deterministic JSON document conforming to `LUCENTRA-Manifest-v0.1` that lists all authorized JavaScript files, their relative URIs, and their SHA-256 digests.
@@ -36,12 +37,14 @@ This glossary establishes precise, unambiguous definitions for domain-specific t
 
 ### 2.3 Verification States
 
-- **VERIFIED:** All loaded scripts match the publisher's signed release manifest, the publisher identity is validated on-chain, and active EAS attestations are confirmed.
-- **MISMATCH / TAMPERED:** One or more scripts loaded into the DOM fail to match the hashes declared in the signed release manifest, or an unauthorized external script has been injected.
-- **UNREGISTERED:** The domain does not have a registered publisher identity in the LUCENTRA `PublisherRegistry.sol` contract.
-- **UNATTESTED:** The domain has a registered publisher, but no active release attestation has been published for the current site release.
-- **REVOKED:** The release attestation or the publisher's signing key has been explicitly revoked on-chain due to a security incident or deprecation.
-- **INDETERMINATE:** Verification could not be finalized due to network timeouts, CORS isolation, or browser extension restrictions.
+The protocol evaluates resource integrity against publisher attestations using six strictly defined verification states:
+
+- **VERIFIED_RELEASE_MATCH:** All discovered in-scope scripts match the publisher's signed release manifest, the publisher identity is validated on-chain, and an active, unrevoked EAS attestation is confirmed. (Note: Validates independently fetched bytes against manifest, not exact in-memory V8 execution).
+- **UNVERIFIED_RESOURCE_DETECTED:** One or more scripts discovered in the DOM fail to match the hashes declared in the signed release manifest, or an unauthorized external script has been injected.
+- **UNREGISTERED_PUBLISHER:** The domain does not have a registered publisher identity in the LUCENTRA `PublisherRegistry.sol` contract.
+- **UNATTESTED_RELEASE:** The domain has a registered publisher, but no active or valid release attestation has been published for the current site release.
+- **REVOKED_RELEASE:** The release attestation or the publisher's signing key has been explicitly revoked on-chain due to a security incident, compromised key, or deprecation.
+- **INDETERMINATE:** Verification could not be definitively finalized due to network timeouts, CORS isolation, opaque cross-origin scripts, browser extension sandbox constraints, or RPC unavailability.
 
 ---
 
@@ -57,3 +60,4 @@ This glossary establishes precise, unambiguous definitions for domain-specific t
 
 - [RFC 8785: JSON Canonicalization Scheme (JCS)](https://www.rfc-editor.org/rfc/rfc8785.html)
 - [NIST FIPS 180-4: Secure Hash Standard](https://csrc.nist.gov/pubs/fips/180-4/upd1/final)
+

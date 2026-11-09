@@ -54,3 +54,4 @@ export default function () {
 ## 4. References
 
 - [k6 Load Testing Documentation](https://k6.io/docs/)
+

@@ -67,3 +67,4 @@ apps/dashboard/
 
 - [Next.js App Router Documentation](https://nextjs.org/docs/app)
 - [Wagmi Documentation](https://wagmi.sh/)
+

@@ -47,3 +47,4 @@ If an adversary obtains root access to the Django backend server:
 ## 5. References
 
 - [Microsoft STRIDE Threat Modeling](https://learn.microsoft.com/en-us/security/engineering/stride-threat-modeling)
+

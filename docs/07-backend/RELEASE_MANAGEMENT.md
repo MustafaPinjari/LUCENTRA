@@ -50,3 +50,4 @@ The raw canonical manifest JSON is stored in PostgreSQL as `canonical_manifest_j
 ## 5. References
 
 - [Django REST Framework Serializers](https://www.django-rest-framework.org/api-guide/serializers/)
+

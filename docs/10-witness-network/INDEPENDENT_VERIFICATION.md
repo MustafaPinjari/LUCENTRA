@@ -53,3 +53,4 @@ To prevent targeted web servers from identifying and serving sanitized code stri
 ## 5. References
 
 - [Web Scraping Architecture and Anti-Fingerprinting Techniques](https://curl.se/libcurl/)
+

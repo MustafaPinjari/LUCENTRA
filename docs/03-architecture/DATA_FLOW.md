@@ -22,8 +22,9 @@ flowchart TD
         API1 -->|2. Issue Challenge Token| P1
         P1 -->|3. Publish TXT Record| DNS[Authoritative DNS]
         Worker[Celery DNS Worker] -->|4. Poll & Verify TXT| DNS
-        Worker -->|5. Mark Verified & Issue Auth Signature| DB[(PostgreSQL)]
-        P1 -->|6. Call registerDomain with Auth Sig| Contract[PublisherRegistry.sol]
+        Worker -->|5. Mark Verified & Execute registerPublisherDomain| Contract[PublisherRegistry.sol]
+        Contract -->|6. Emit DomainRegisteredByRegistrar| Worker
+        Worker -->|7. Notify Registration Success| P1
     end
 
     subgraph Flow2["Data Flow 2: Release Creation & Attestation"]
@@ -39,13 +40,13 @@ flowchart TD
     subgraph Flow3["Data Flow 3: Client Verification"]
         UserBrowser[Client Browser] -->|Navigate to Site| WebServer[Origin / CDN]
         WebServer -->|Deliver HTML & Scripts| UserBrowser
-        ExtContent[Extension Content Script] -->|Intercept Script Nodes| WorkerHasher[Web Worker Hasher]
+        ExtContent[Extension Content Script] -->|Discover Script Nodes| WorkerHasher[Web Worker Hasher]
         WorkerHasher -->|Calculate SHA-256| LocalDigests[Computed Script Hashes]
         ExtBackground[Extension Background Worker] -->|Fetch Active Manifest| API1
         ExtBackground -->|Query Attestation UID| EAS
         ExtBackground -->|Cross-Check Hashes| Matcher[Verification State Machine]
         LocalDigests --> Matcher
-        Matcher -->|Set Badge Status| ExtBadge[UI Badge: Green / Red]
+        Matcher -->|Set Badge Status| ExtBadge[UI Badge: 6 Verification States]
     end
 ```
 
@@ -56,8 +57,9 @@ flowchart TD
 ### 3.1 Domain Ownership Challenge Pipeline
 1. Publisher submits `domain` to `POST /api/v1/domains/challenge/`.
 2. Backend generates a 32-byte cryptographic nonce, stores it with an expiry of 24 hours, and returns `_lucentra-verification.<domain>` configuration instructions.
-3. Celery task periodically queries nameservers using DNS-over-HTTPS or direct UDP query.
-4. Upon confirmation, backend signs an ECDSA authorization ticket that permits the publisher's wallet address to invoke `registerDomain` on `PublisherRegistry.sol`.
+3. Celery task periodically queries nameservers using DNS-over-HTTPS or direct authoritative UDP query.
+4. Upon DNS confirmation, the backend Registrar wallet submits an on-chain transaction invoking `registerPublisherDomain(domain, publisherAddress, initialSigningKey)` on `PublisherRegistry.sol`. The registrar emits an auditable `DomainRegisteredByRegistrar` event.
+5. The publisher's wallet is now established on-chain as the sole entity authorized to rotate or revoke signing keys via `authorizeSigningKey()` and `revokeSigningKey()`.
 
 ### 3.2 Manifest Creation & Attestation Pipeline
 1. Build script scans production assets in the distribution folder (`dist/` or `out/`).
@@ -70,12 +72,12 @@ flowchart TD
 8. Posts canonical manifest and resulting EAS UID to the LUCENTRA backend API.
 
 ### 3.3 Client Verification Pipeline
-1. Content script detects `<script>` insertion via `MutationObserver`.
-2. Dispatches asset URL to Web Worker; Web Worker fetches byte buffer and calls `crypto.subtle.digest("SHA-256", buffer)`.
+1. Content script detects `<script>` tags in the DOM via `MutationObserver`.
+2. Dispatches asset URL to Web Worker; Web Worker fetches byte buffer and calls `crypto.subtle.digest("SHA-256", buffer)`. (Note: operates on independently fetched resource bytes, not in-memory V8 engine execution bytes).
 3. Extension background service worker checks cache for the active domain manifest and EAS UID.
-4. Compares all computed asset hashes against the manifest.
-5. If all scripts match and attestation is valid: outputs `VERIFIED`.
-6. If any script fails to match or an unknown script is executed: outputs `MISMATCH`.
+4. Compares all computed asset hashes against the manifest and on-chain signing key status.
+5. Evaluates the result into one of the six honest protocol states: `VERIFIED_RELEASE_MATCH`, `UNVERIFIED_RESOURCE_DETECTED`, `UNREGISTERED_PUBLISHER`, `UNATTESTED_RELEASE`, `REVOKED_RELEASE`, or `INDETERMINATE`.
+6. Updates extension badge icon and detailed popup inspection view.
 
 ---
 
@@ -96,3 +98,4 @@ Data flows cross multiple trust boundaries (untrusted client browser $\rightarro
 
 - [RFC 8785: JSON Canonicalization Scheme](https://www.rfc-editor.org/rfc/rfc8785.html)
 - [W3C Web Cryptography API](https://www.w3.org/TR/WebCryptoAPI/)
+

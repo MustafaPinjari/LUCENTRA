@@ -289,3 +289,15 @@ This catalogue indexes all architectural, protocol, cryptographic, security, imp
 | [`BUG_REPORT_TEMPLATE.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/templates/BUG_REPORT_TEMPLATE.md) | Bug report and root cause triage template | APPROVED | None | QA, Developers |
 | [`SECURITY_REVIEW_TEMPLATE.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/templates/SECURITY_REVIEW_TEMPLATE.md) | STRIDE security review checklist template | APPROVED | None | Security Architects |
 | [`AGENT_HANDOFF_TEMPLATE.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/templates/AGENT_HANDOFF_TEMPLATE.md) | Cross-agent task handoff artifact template | APPROVED | None | AI Agents |
+
+---
+
+### Master Audit & Forensic Reports
+| File Path | Purpose | Status | Dependencies | Intended Audience |
+| :--- | :--- | :--- | :--- | :--- |
+| [`DOCUMENTATION_INDEX.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/DOCUMENTATION_INDEX.md) | Global catalogue and cross-reference index | APPROVED | All docs | All Contributors |
+| [`DOCUMENTATION_AUDIT_REPORT.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/DOCUMENTATION_AUDIT_REPORT.md) | Formal architectural validation and link integrity report | VERIFIED | All docs | Engineering Coordinator, Mustafa |
+| [`DOCUMENTATION_ISSUES.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/DOCUMENTATION_ISSUES.md) | Architectural issues log, resolutions, and open decisions | APPROVED | All docs | Architects, Developers |
+| [`REPOSITORY_INSPECTION_REPORT.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/REPOSITORY_INSPECTION_REPORT.md) | Initial baseline forensic audit of repository state | VERIFIED | None | Technical Leads |
+
+

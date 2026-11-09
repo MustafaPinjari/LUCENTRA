@@ -47,3 +47,4 @@ For MVP v0.1:
 ## 5. References
 
 - [W3C DOM Specification — MutationObserver](https://dom.spec.whatwg.org/#mutation-observers)
+

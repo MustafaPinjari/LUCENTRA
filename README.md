@@ -39,10 +39,10 @@ flowchart LR
 
     subgraph Client["Client Browser"]
         Browser[User Web Browser] -->|5. Load Site| DOM[DOM & Scripts]
-        Ext[LUCENTRA Chrome Extension] -->|6. Intercept & Hash| ClientHash[Computed SHA-256]
+        Ext[LUCENTRA Chrome Extension] -->|6. Discover Scripts & Retrieve| ClientHash[Computed SHA-256]
         Ext -->|7. Verify Attestation| OnChain
         Ext -->|8. Fetch Manifest| Backend
-        ClientHash <-->|9. Cross-Verify| Manifest
+        ClientHash <-->|9. Cross-Verify Hashes| Manifest
     end
 ```
 
@@ -52,13 +52,13 @@ flowchart LR
 
 | Layer | Technology | Purpose |
 | :--- | :--- | :--- |
-| **Browser Extension** | Chrome Manifest V3, TypeScript, Web Workers | DOM inspection, script SHA-256 calculation, verification badge |
-| **Publisher Dashboard** | Next.js 14, React, TypeScript, Tailwind CSS | Publisher onboarding, domain DNS verification, release management |
+| **Browser Extension** | Chrome Manifest V3, TypeScript, Web Workers | DOM inspection, script retrieval, SHA-256 calculation, status badge |
+| **Publisher Dashboard** | Next.js 14, React, TypeScript, Tailwind CSS | Publisher onboarding, domain challenge tracking, release management |
 | **Blockchain Integration** | Viem, Wagmi, EIP-712 | Browser-side signing and smart contract interaction |
-| **Backend & Ingestion** | Python 3.11+, Django 5+, Django REST Framework | Metadata caching, DNS validation worker, witness aggregation |
+| **Backend & Ingestion** | Python 3.11+, Django 5+, Django REST Framework | Metadata caching, DNS validation worker, registrar dispatcher |
 | **Asynchronous Queue** | Redis, Celery | Background resource crawling, witness polling, DNS TXT check |
-| **Smart Contracts** | Solidity 0.8.24+, Foundry, OpenZeppelin | `PublisherRegistry.sol`, key lifecycle management |
-| **Attestation Protocol** | Ethereum Attestation Service (EAS) | Immutable, publicly verifiable on-chain release attestations |
+| **Smart Contracts** | Solidity 0.8.24+, Foundry, OpenZeppelin | `PublisherRegistry.sol`, registrar role, key lifecycle |
+| **Attestation Protocol** | Ethereum Attestation Service (EAS) | Immutable on-chain attestations with explicit revocation semantics |
 | **Cryptography** | SHA-256 (FIPS 180-4), RFC 8785 (JCS), secp256k1 | Deterministic canonicalization and asset hashing |
 
 ---
@@ -88,7 +88,7 @@ For comprehensive engineering specifications, navigate the `docs/` tree:
 - [docs/06-blockchain/](docs/06-blockchain/BLOCKCHAIN_ARCHITECTURE.md) — Solidity contracts, Foundry setup, and EAS schema definitions.
 - [docs/07-backend/](docs/07-backend/BACKEND_ARCHITECTURE.md) — Django models, DRF endpoints, Celery workers, and database schemas.
 - [docs/08-frontend/](docs/08-frontend/FRONTEND_ARCHITECTURE.md) — Next.js architecture, Wagmi hooks, and UI flows.
-- [docs/09-browser-extension/](docs/09-browser-extension/EXTENSION_ARCHITECTURE.md) — Manifest V3 architecture, service worker, content scripts, and resource interception.
+- [docs/09-browser-extension/](docs/09-browser-extension/EXTENSION_ARCHITECTURE.md) — Manifest V3 architecture, service worker, content scripts, and resource inspection.
 - [docs/10-witness-network/](docs/10-witness-network/WITNESS_ARCHITECTURE.md) — Multi-party witness protocol, observation formatting, and conflict resolution.
 - [docs/11-security/](docs/11-security/SECURITY_OVERVIEW.md) — Threat model (STRIDE), attack surface analysis, and security checklists.
 - [docs/12-testing/](docs/12-testing/TESTING_STRATEGY.md) — Test matrices across unit, integration, Foundry, and browser tests.
@@ -98,6 +98,7 @@ For comprehensive engineering specifications, navigate the `docs/` tree:
 - [docs/16-user-and-developer-guides/](docs/16-user-and-developer-guides/QUICK_START.md) — Getting started guides for publishers and developers.
 - [docs/17-releases/](docs/17-releases/VERSION_0.1.md) — Release notes and version specifications.
 - [docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md) — Global documentation catalogue.
+- [docs/DOCUMENTATION_ISSUES.md](docs/DOCUMENTATION_ISSUES.md) — Tracked technical debts, boundaries, and open decisions.
 
 ---
 

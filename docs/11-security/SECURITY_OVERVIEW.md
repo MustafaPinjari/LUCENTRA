@@ -53,3 +53,4 @@ mindmap
 ## 5. References
 
 - [NIST SP 800-207: Zero Trust Architecture](https://csrc.nist.gov/publications/detail/sp/800-207/final)
+

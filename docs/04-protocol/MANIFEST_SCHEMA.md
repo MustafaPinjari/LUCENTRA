@@ -108,3 +108,4 @@ This document provides the formal JSON Schema (Draft 2020-12) for the `LUCENTRA-
 ## 5. References
 
 - [JSON Schema Specification Draft 2020-12](https://json-schema.org/draft/2020-12/release-notes)
+

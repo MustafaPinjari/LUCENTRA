@@ -71,3 +71,4 @@ This document provides the formal JSON schema and validation rules for signed au
 ## 4. References
 
 - [JSON Schema Specification](https://json-schema.org/)
+

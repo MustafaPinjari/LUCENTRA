@@ -1,7 +1,7 @@
 # Smart Contract Design — LUCENTRA
 
 **Document ID:** LUC-BC-002  
-**Version:** 0.1.0  
+**Version:** 0.2.0  
 **Status:** APPROVED  
 **Last Updated:** 2026-11-09  
 
@@ -19,21 +19,20 @@ This document provides the technical design, class hierarchy, and storage layout
 classDiagram
     class Context
     class Ownable2Step
-    class EIP712
     class ReentrancyGuard
     class PublisherRegistry {
         +mapping(bytes32 => DomainRecord) domains
-        +address public dnsVerifierSigner
-        +registerDomain(string domain, address owner, bytes backendSig)
-        +authorizeKey(string domain, address key)
-        +revokeKey(string domain, address key)
+        +address public registrar
+        +registerDomain(string domain, address owner) [onlyRegistrar]
+        +authorizeKey(string domain, address key) [onlyDomainOwner]
+        +revokeKey(string domain, address key) [onlyDomainOwner]
+        +revokeDomain(string domain) [onlyDomainOwner]
         +isKeyAuthorized(string domain, address key) bool
-        +setVerifierSigner(address newSigner)
+        +setRegistrar(address newRegistrar) [onlyOwner]
     }
 
     Context <|-- Ownable2Step
     Ownable2Step <|-- PublisherRegistry
-    EIP712 <|-- PublisherRegistry
     ReentrancyGuard <|-- PublisherRegistry
 ```
 
@@ -58,7 +57,8 @@ struct DomainRecord {
 ---
 
 ## 4. Security & Reentrancy Design
-- All external state-modifying functions follow the Checks-Effects-Interactions (CEI) pattern.
+- Initial domain registration is restricted to the authorized `Registrar` role (`onlyRegistrar`). No public registration entrypoint exists.
+- Key rotation and revocation are governed strictly by the verified domain owner (`onlyDomainOwner`).
 - Critical administrative functions implement `nonReentrant` and `onlyOwner` modifiers.
 - Ownership transfers require two-step acceptance via OpenZeppelin `Ownable2Step`.
 

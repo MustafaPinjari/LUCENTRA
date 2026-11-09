@@ -94,3 +94,4 @@ forge script script/DeployPublisherRegistry.s.sol:DeployPublisherRegistry \
 ## 6. References
 
 - [Foundry Scripting Guide](https://book.getfoundry.sh/tutorials/solidity-scripting)
+

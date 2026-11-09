@@ -93,19 +93,21 @@ bytes32 manifestHash, string domain, string version, bytes signature
 stateDiagram-v2
     [*] --> Idle : Tab Navigation Initiated
     Idle --> FetchingManifest : Tab Loaded
-    FetchingManifest --> Unregistered : Domain not found in PublisherRegistry
-    FetchingManifest --> Unattested : Publisher registered, but no active EAS release
+    FetchingManifest --> UNREGISTERED_PUBLISHER : Domain not found in PublisherRegistry
+    FetchingManifest --> UNATTESTED_RELEASE : Publisher registered, but no active EAS release
+    FetchingManifest --> INDETERMINATE : Network timeout, CORS block, or RPC offline
     FetchingManifest --> EvaluatingScripts : Valid manifest & EAS attestation loaded
     
-    EvaluatingScripts --> Verified : All DOM scripts match manifest SHA-256
-    EvaluatingScripts --> Mismatch : Any script hash diverges OR unknown script loaded
-    EvaluatingScripts --> Revoked : Attestation or Publisher Key revoked on-chain
+    EvaluatingScripts --> VERIFIED_RELEASE_MATCH : All discovered in-scope scripts match manifest SHA-256
+    EvaluatingScripts --> UNVERIFIED_RESOURCE_DETECTED : Any script hash diverges OR unknown script discovered
+    EvaluatingScripts --> REVOKED_RELEASE : Attestation or Publisher Key revoked on-chain
     
-    Verified --> [*]
-    Mismatch --> [*]
-    Unregistered --> [*]
-    Unattested --> [*]
-    Revoked --> [*]
+    VERIFIED_RELEASE_MATCH --> [*]
+    UNVERIFIED_RESOURCE_DETECTED --> [*]
+    UNREGISTERED_PUBLISHER --> [*]
+    UNATTESTED_RELEASE --> [*]
+    REVOKED_RELEASE --> [*]
+    INDETERMINATE --> [*]
 ```
 
 ---
@@ -113,8 +115,9 @@ stateDiagram-v2
 ## 5. Security & Invariant Rules
 
 1. **Ordering Invariance:** Even if an application reorders its `<script>` tags in the HTML, verification succeeds as long as all loaded scripts exist with matching hashes in the manifest.
-2. **Strict Inclusivity:** If a script tag executes in the browser whose path/content is **not** declared in the manifest, the state machine must immediately fail to `MISMATCH`.
-3. **Expiration Boundary:** If `current_timestamp > expiresAt`, the manifest is deemed expired, transitioning to `UNATTESTED` until a renewed release is attested.
+2. **Strict Inclusivity:** If a script tag executes in the browser whose path/content is **not** declared in the manifest, the state machine must immediately transition to `UNVERIFIED_RESOURCE_DETECTED`.
+3. **Expiration Boundary:** If `current_timestamp > expiresAt`, the manifest is deemed expired, transitioning to `UNATTESTED_RELEASE` until a renewed release is attested.
+4. **Execution Layer Distinction:** Verification operates across Layers 1–6 (DOM script discovery and independent retrieval/comparison). It does not claim Layer 7 verification (in-memory V8 engine JIT byte inspection or inline dynamic `eval()` execution).
 
 ---
 
@@ -130,3 +133,4 @@ stateDiagram-v2
 
 - [RFC 8785: JSON Canonicalization Scheme](https://www.rfc-editor.org/rfc/rfc8785.html)
 - [EIP-712 Standard](https://eips.ethereum.org/EIPS/eip-712)
+

@@ -75,3 +75,4 @@ This document details the implementation of content scripts in the LUCENTRA Chro
 ## 4. References
 
 - [MDN MutationObserver API](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver)
+

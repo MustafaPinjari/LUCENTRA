@@ -33,3 +33,4 @@ This document provides a chronological log of all architectural, product, and pr
 ## 3. Related Documents
 
 - [docs/03-architecture/ARCHITECTURE_DECISIONS.md](../03-architecture/ARCHITECTURE_DECISIONS.md)
+

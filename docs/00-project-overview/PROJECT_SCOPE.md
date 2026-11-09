@@ -57,7 +57,8 @@ The approved MVP focuses strictly on **Publisher Identity Verification + Signed 
    - Content script DOM inspection for `<script src="...">` tags.
    - Non-blocking Web Worker computing SHA-256 digests.
    - Background service worker querying backend/EAS for active release manifest.
-   - Verification status badge and popup UI (Verified, Mismatch, Unregistered, Tampered).
+   - Verification status badge and popup UI evaluating the six honest verification states: `VERIFIED_RELEASE_MATCH`, `UNVERIFIED_RESOURCE_DETECTED`, `UNREGISTERED_PUBLISHER`, `UNATTESTED_RELEASE`, `REVOKED_RELEASE`, and `INDETERMINATE`.
+   - *Verification Scope Boundary:* Verifies independently fetched resource bytes against signed manifests; explicitly does not claim to inspect exact in-memory V8 engine execution bytes or inline eval strings.
 
 2. **Publisher Management Dashboard (Next.js):**
    - Web3 wallet connection (MetaMask, Rainbow, WalletConnect via Wagmi).
@@ -70,12 +71,13 @@ The approved MVP focuses strictly on **Publisher Identity Verification + Signed 
 3. **Backend API (Django REST Framework):**
    - Publisher profile and domain registry indexing.
    - Asynchronous DNS TXT record validation via Celery.
+   - Automated Registrar transaction submission to `PublisherRegistry.sol` upon successful DNS TXT record validation.
    - Release manifest metadata storage and serving.
    - Witness observation ingestion endpoint.
    - Health check and telemetry endpoints.
 
 4. **Smart Contracts (Solidity & Foundry):**
-   - `PublisherRegistry.sol`: Maps normalized domains to publisher Ethereum addresses, manages signing key lifecycle, emits registration events.
+   - `PublisherRegistry.sol`: Maps normalized domains to publisher Ethereum addresses via authorized Registrar initial registration, enforces domain owner-only key rotation and revocation, and emits auditable registration events.
    - EAS Schema registration: Defines structured attestation schema for release digests.
 
 5. **Independent Witness Client:**
@@ -88,6 +90,7 @@ The approved MVP focuses strictly on **Publisher Identity Verification + Signed 
 1. **Private Key Generation or Custody:** LUCENTRA will never manage, store, or hold private keys for publishers or witnesses.
 2. **On-Chain Full File Storage:** Storing full JavaScript bundles on Ethereum is cost-prohibitive; only cryptographic hashes (SHA-256 digests and root merkle/manifest hashes) are anchored on-chain.
 3. **Automated Code Vulnerability Scanning:** LUCENTRA verifies **authenticity and integrity** (whether code matches the publisher's authorized release), not whether the publisher wrote secure or bug-free code.
+4. **In-Memory V8 JIT Byte Execution Verification:** Browser extension architecture and web security boundaries cannot intercept or cryptographically verify exact V8 JIT memory or dynamically evaluated strings without deep browser engine modifications.
 
 ---
 
@@ -115,3 +118,4 @@ Ad networks and analytics providers that modify script content dynamically on ev
 
 - [Ethereum Attestation Service Specification](https://docs.attest.org/)
 - [Google Chrome Extensions Manifest V3 Guidelines](https://developer.chrome.com/docs/extensions/mv3/intro/)
+

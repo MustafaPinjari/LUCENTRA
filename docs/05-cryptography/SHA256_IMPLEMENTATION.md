@@ -77,3 +77,4 @@ function hashSha256(bytes memory data) internal view returns (bytes32 result) {
 
 - [W3C Web Cryptography API](https://www.w3.org/TR/WebCryptoAPI/)
 - [NIST FIPS 180-4](https://csrc.nist.gov/pubs/fips/180-4/upd1/final)
+

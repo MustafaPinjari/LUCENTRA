@@ -78,3 +78,4 @@ The MVP cannot transition from `IMPLEMENTED` to `VERIFIED` until:
 
 - [Ethereum Attestation Service](https://docs.attest.org/)
 - [EIP-712 Standard](https://eips.ethereum.org/EIPS/eip-712)
+

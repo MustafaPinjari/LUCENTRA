@@ -41,3 +41,4 @@ LUCENTRA uses Semantic Versioning (`MAJOR.MINOR.PATCH`) for all software subsyst
 ## 5. References
 
 - [Semantic Versioning 2.0.0](https://semver.org/)
+

@@ -44,3 +44,4 @@ The Chrome Extension maintains an ordered array of public RPC endpoints. If an R
 
 - [Chainlist Network Directory](https://chainlist.org/)
 - [EAS Official Contract Addresses](https://docs.attest.org/docs/quick--start/contracts)
+

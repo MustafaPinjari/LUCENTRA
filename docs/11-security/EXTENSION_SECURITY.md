@@ -32,3 +32,4 @@ This document specifies the client-side sandboxing, memory isolation, and defens
 ## 4. References
 
 - [Chrome Extension Security Guidelines](https://developer.chrome.com/docs/extensions/mv3/security/)
+

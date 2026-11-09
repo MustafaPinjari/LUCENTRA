@@ -32,3 +32,4 @@ This document articulates the privacy architecture of LUCENTRA, defining how the
 ## 4. References
 
 - [GDPR Principle of Data Minimisation (Article 5(1)(c))](https://gdpr-info.eu/art-5-gdpr/)
+

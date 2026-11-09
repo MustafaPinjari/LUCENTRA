@@ -45,3 +45,4 @@ All individual decision records are located in `docs/03-architecture/decisions/`
 
 - [docs/03-architecture/SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md)
 - [docs/templates/ADR_TEMPLATE.md](../templates/ADR_TEMPLATE.md)
+

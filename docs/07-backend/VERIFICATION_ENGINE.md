@@ -47,3 +47,4 @@ The cache key `lucentra:manifest:{domain}:active` is immediately purged upon:
 ## 5. References
 
 - [Redis In-Memory Data Store](https://redis.io/)
+

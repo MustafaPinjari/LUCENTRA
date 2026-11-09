@@ -42,3 +42,4 @@ console.log("Total Verified Scripts:", release.manifest.resources.length);
 
 - [docs/07-backend/API_SPECIFICATION.md](../07-backend/API_SPECIFICATION.md)
 - [docs/06-blockchain/CONTRACT_INTERFACES.md](../06-blockchain/CONTRACT_INTERFACES.md)
+

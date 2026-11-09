@@ -73,3 +73,4 @@ flowchart TD
 
 - [Django REST Framework Documentation](https://www.django-rest-framework.org/)
 - [Celery Project Documentation](https://docs.celeryq.dev/)
+

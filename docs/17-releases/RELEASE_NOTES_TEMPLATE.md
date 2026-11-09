@@ -15,10 +15,10 @@
 ## 2. What's Changed
 
 ### 🚀 Highlights & New Features
-- **Component:** Short description ([#PR](link))
+- **Component:** Short description (`#PR-XXX`)
 
 ### 🐛 Bug Fixes & Mitigations
-- **Component:** Short description ([#PR](link))
+- **Component:** Short description (`#PR-XXX`)
 
 ### 🔒 Security & Cryptographic Updates
 - **Component:** Security enhancement or dependency patch.
@@ -42,3 +42,4 @@
 | **Publisher Dashboard**| vX.Y.Z | Next.js Vercel Deploy |
 | **Chrome Extension** | vX.Y.Z | Chrome Web Store Artifact |
 | **Witness Daemon** | vX.Y.Z | Python Package Release |
+

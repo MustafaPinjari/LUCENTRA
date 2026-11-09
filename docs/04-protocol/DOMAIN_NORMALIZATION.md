@@ -110,3 +110,4 @@ bytes32 domainHash = keccak256(bytes(normalizedDomain));
 
 - [Unicode UTS #46: IDNA Compatibility Processing](https://unicode.org/reports/tr46/)
 - [IETF RFC 1035: Domain Names - Implementation and Specification](https://www.rfc-editor.org/rfc/rfc1035.html)
+

@@ -41,3 +41,4 @@ When a witness node submits an audit report:
 ## 5. References
 
 - [SEC 2: Recommended Elliptic Curve Domain Parameters](https://www.secg.org/sec2-v2.pdf)
+

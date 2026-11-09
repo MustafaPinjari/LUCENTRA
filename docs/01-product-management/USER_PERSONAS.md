@@ -76,3 +76,4 @@ Personas require distinct security profiles: Alex requires strict key separation
 ## 6. References
 
 - [Nielsen Norman Group: Persona Design Guidelines](https://www.nngroup.com/articles/persona/)
+

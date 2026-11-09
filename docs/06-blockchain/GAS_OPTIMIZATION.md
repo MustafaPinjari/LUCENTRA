@@ -44,3 +44,4 @@ This document details the gas optimization techniques applied to LUCENTRA smart 
 ## 5. References
 
 - [Solidity Gas Optimization Techniques](https://github.com/iskdrews/awesome-solidity-gas-optimization)
+

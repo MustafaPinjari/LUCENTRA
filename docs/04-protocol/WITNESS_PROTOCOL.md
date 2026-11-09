@@ -73,3 +73,4 @@ Every observation published by a witness node must conform to the following sche
 ## 6. References
 
 - [RFC 8785: JSON Canonicalization Scheme](https://www.rfc-editor.org/rfc/rfc8785.html)
+

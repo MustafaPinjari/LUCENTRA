@@ -69,3 +69,4 @@ stateDiagram-v2
 ## 5. References
 
 - [EAS Revocation Documentation](https://docs.attest.org/docs/core--concepts/revocations)
+

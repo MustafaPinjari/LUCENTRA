@@ -41,3 +41,4 @@ This document justifies every permission requested by the LUCENTRA Chrome Extens
 ## 5. References
 
 - [Chrome Web Store Permissions Policy](https://developer.chrome.com/docs/webstore/program-policies/permissions/)
+

@@ -87,3 +87,4 @@ flowchart TD
 ## 6. References
 
 - [Google Chrome Extension Manifest V3 Guidelines](https://developer.chrome.com/docs/extensions/mv3/)
+

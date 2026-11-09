@@ -44,3 +44,4 @@ This document analyzes existing industry solutions, commercial products, and eme
 
 - [Cloudflare Page Shield Documentation](https://developers.cloudflare.com/page-shield/)
 - [W3C SRI Specification](https://www.w3.org/TR/SRI/)
+

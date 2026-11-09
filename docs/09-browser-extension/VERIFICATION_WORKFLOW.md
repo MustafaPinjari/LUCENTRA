@@ -51,3 +51,4 @@ flowchart TD
 ## 4. References
 
 - [Chrome Extension APIs](https://developer.chrome.com/docs/extensions/reference/)
+

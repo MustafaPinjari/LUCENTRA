@@ -42,3 +42,4 @@ This document provides a technical critique of existing browser and web standard
 
 - [W3C Content Security Policy Level 3](https://www.w3.org/TR/CSP3/)
 - [RFC 6962: Certificate Transparency](https://www.rfc-editor.org/rfc/rfc6962.html)
+

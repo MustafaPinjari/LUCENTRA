@@ -84,3 +84,4 @@ Failing to meet performance NFRs will degrade user browsing experience, while fa
 ## 6. References
 
 - [ISO/IEC 25010: Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE)](https://iso25000.com/index.php/en/iso-25000-standards/iso-25010)
+

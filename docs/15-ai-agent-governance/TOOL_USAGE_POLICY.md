@@ -26,3 +26,4 @@ This document regulates the usage of execution tools (shell execution, file edit
 
 - [docs/15-ai-agent-governance/RESOURCE_OPTIMIZATION.md](RESOURCE_OPTIMIZATION.md)
 - [docs/15-ai-agent-governance/CODE_CHANGE_POLICY.md](CODE_CHANGE_POLICY.md)
+

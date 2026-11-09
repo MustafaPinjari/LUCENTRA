@@ -43,3 +43,4 @@ This document provides a systematic analysis of the technical gaps between exist
 
 - [Google Chrome MV3 Migration Guide](https://developer.chrome.com/docs/extensions/migrating/)
 - [Reproducible Builds Project](https://reproducible-builds.org/)
+

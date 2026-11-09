@@ -1,7 +1,7 @@
 # Smart Contract Interfaces & ABI Definitions — LUCENTRA
 
 **Document ID:** LUC-BC-005  
-**Version:** 0.1.0  
+**Version:** 0.2.0  
 **Status:** APPROVED  
 **Last Updated:** 2026-11-09  
 
@@ -22,25 +22,30 @@ pragma solidity 0.8.24;
 interface IPublisherRegistry {
     enum KeyStatus { UNAUTHORIZED, ACTIVE, REVOKED }
 
-    event DomainRegistered(bytes32 indexed domainHash, string domain, address indexed owner, uint64 timestamp);
+    event DomainRegisteredByRegistrar(
+        bytes32 indexed domainHash,
+        string domain,
+        address indexed owner,
+        uint64 timestamp
+    );
     event KeyAuthorized(bytes32 indexed domainHash, address indexed signingKey, uint64 timestamp);
     event KeyRevoked(bytes32 indexed domainHash, address indexed signingKey, uint64 timestamp);
     event DomainRevoked(bytes32 indexed domainHash, uint64 timestamp);
+    event RegistrarUpdated(address indexed oldRegistrar, address indexed newRegistrar, uint64 timestamp);
 
-    function registerDomain(
-        string calldata domain,
-        address owner,
-        uint256 deadline,
-        bytes calldata verifierSignature
-    ) external;
+    function registerDomain(string calldata domain, address owner) external;
 
     function authorizeKey(string calldata domain, address signingKey) external;
 
     function revokeKey(string calldata domain, address signingKey) external;
 
+    function revokeDomain(string calldata domain) external;
+
     function isKeyAuthorized(string calldata domain, address signingKey) external view returns (bool);
 
     function getDomainOwner(string calldata domain) external view returns (address);
+
+    function registrar() external view returns (address);
 }
 ```
 

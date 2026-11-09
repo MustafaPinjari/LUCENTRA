@@ -52,3 +52,4 @@ The dashboard requires connected wallets to operate on the approved active netwo
 
 - [Wagmi Getting Started](https://wagmi.sh/react/getting-started)
 - [WalletConnect v2](https://walletconnect.com/)
+

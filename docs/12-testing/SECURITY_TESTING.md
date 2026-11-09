@@ -52,3 +52,4 @@ flowchart LR
 
 - [Slither Static Analyzer](https://github.com/crytic/slither)
 - [Bandit Security Linter](https://bandit.readthedocs.io/)
+

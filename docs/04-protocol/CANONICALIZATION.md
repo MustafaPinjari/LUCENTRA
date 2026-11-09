@@ -82,3 +82,4 @@ def canonicalize_manifest(manifest: dict) -> str:
 ## 6. References
 
 - [IETF RFC 8785: JSON Canonicalization Scheme (JCS)](https://www.rfc-editor.org/rfc/rfc8785.html)
+

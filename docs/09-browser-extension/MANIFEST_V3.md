@@ -82,3 +82,4 @@ This document provides the complete, production-grade `manifest.json` definition
 ## 5. References
 
 - [Chrome Extensions Manifest File Format](https://developer.chrome.com/docs/extensions/mv3/manifest/)
+

@@ -124,3 +124,4 @@ function updateBadge(tabId: number, status: string) {
 ## 4. References
 
 - [Chrome Service Worker Migration](https://developer.chrome.com/docs/extensions/mv3/migrating-to-service-workers/)
+

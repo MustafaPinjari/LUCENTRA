@@ -114,3 +114,4 @@ erDiagram
 
 - [Django Models Documentation](https://docs.djangoproject.com/en/5.0/topics/db/models/)
 - [PostgreSQL Indexing Documentation](https://www.postgresql.org/docs/current/indexes.html)
+

@@ -1,7 +1,7 @@
 # Security Policy — LUCENTRA
 
 **Document ID:** LUC-SEC-000  
-**Version:** 0.1.0  
+**Version:** 0.2.0  
 **Status:** APPROVED  
 **Last Updated:** 2026-11-09  
 
@@ -20,7 +20,7 @@ A failure in LUCENTRA's security posture undermines the trust users place in the
 1. **No Custody of Private Keys:** Neither the LUCENTRA backend, database, nor witness infrastructure shall ever generate, handle, store, or transmit publisher private signing keys. All signing is strictly non-custodial via client-side wallets (EIP-712).
 2. **Immutable On-Chain Anchor:** Publisher public keys and identity links are anchored immutably via EVM smart contracts and EAS attestations. The centralized backend is strictly an acceleration and caching layer and cannot forge valid attestations.
 3. **Strict Client-Side Validation:** The Chrome Extension and client verification engines must cryptographically verify signatures and EAS attestations independently rather than blindly trusting the backend API response.
-4. **Least Privilege MV3 Permissions:** The Chrome Extension requests strictly necessary permissions (`activeTab`, `scripting`, declarative network observation where permitted) and avoids invasive blanket permissions (`<all_urls>` where host permissions can be restricted).
+4. **Least Privilege MV3 Permissions:** The Chrome Extension requests strictly necessary permissions (`activeTab`, `storage`, declarative network observation where permitted) and avoids invasive blanket permissions (`<all_urls>` where host permissions can be restricted).
 5. **Deterministic Canonicalization:** All signed payloads must adhere to RFC 8785 JSON Canonicalization Scheme (JCS) to eliminate signature malleability caused by JSON key ordering or whitespace differences.
 
 ---
@@ -41,14 +41,16 @@ A failure in LUCENTRA's security posture undermines the trust users place in the
 We take responsible disclosure seriously. If you discover a security vulnerability in LUCENTRA, please follow these steps:
 
 1. **Do NOT open a public GitHub issue.**
-2. Send an encrypted email to `security@lucentra.io` (or the designated security architect contact).
+2. Send an encrypted communication to designated security coordinators:
+   - Primary Security Contact: `security@lucentra.io` `[NEEDS_CONFIRMATION: Organizational domain and PGP key setup pending]`
+   - Secondary Contact: Direct disclosure to Lead Architect / Project Owner (`Mustafa`) via private coordination channel `[NEEDS_CONFIRMATION]`
 3. Include:
    - Component affected (e.g., Extension, Contract, Backend, Protocol).
    - Clear description of the vulnerability and attack vector.
    - Proof of Concept (PoC) or reproducible steps.
    - Potential impact assessment.
-4. The security team will acknowledge receipt within 24 hours and provide an initial assessment within 72 hours.
-5. Coordinated disclosure will follow a standard 90-day window, or sooner upon mutual agreement once a fix is verified.
+4. Target response SLA: Acknowledgement within 24 hours `[NEEDS_CONFIRMATION: Pending on-call triage rotation setup]`, initial severity assessment within 72 hours `[NEEDS_CONFIRMATION]`.
+5. Coordinated disclosure window: Target 90 days following remediation validation `[NEEDS_CONFIRMATION: Subject to formal legal advisory sign-off]`.
 
 ---
 

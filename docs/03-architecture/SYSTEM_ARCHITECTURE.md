@@ -29,7 +29,7 @@ flowchart TB
 
     subgraph OffChainLayer["Off-Chain Services & Ingestion Layer"]
         API["Django REST Framework API<br/>Python 3.11+"]
-        Worker["Celery Asynchronous Workers<br/>DNS Verification & Crawler"]
+        Worker["Celery Asynchronous Workers<br/>DNS Verification & Registrar Bot"]
         RedisDB[(Redis Cache & Message Broker)]
         PostgresDB[(PostgreSQL Primary Database)]
         Witness["Independent Witness Nodes<br/>Observer Daemons"]
@@ -45,7 +45,7 @@ flowchart TB
     Dash -->|EIP-712 Signing| ClientLayer
     Dash -->|HTTPS REST| API
     Dash -->|Submit Attestation| EAS
-    Dash -->|Register Key| Registry
+    Dash -->|Rotate/Revoke Keys| Registry
 
     Ext -->|Query Manifest| API
     Ext -->|Direct RPC Verify| RPC
@@ -57,6 +57,7 @@ flowchart TB
     API <--> RedisDB
     Worker <--> RedisDB
     Worker -->|Authoritative DNS Lookup| InternetDNS[DNS Authoritative Servers]
+    Worker -->|Registrar Initial Registration| Registry
     Witness -->|HTTPS Post Observation| API
     Witness -->|Direct RPC Verify| RPC
 
@@ -77,7 +78,7 @@ flowchart TB
 ### 3.1 On-Chain Layer (Ethereum & EAS)
 - **Role:** Immutable root of truth.
 - **Key Contracts:**
-  - `PublisherRegistry.sol`: Maps `keccak256(domain)` to registered publisher address and authorized signing key addresses.
+  - `PublisherRegistry.sol`: Maps `keccak256(domain)` to registered publisher address and authorized signing key addresses. Initial domain binding is executed exclusively by an authorized Registrar role after off-chain DNS TXT validation; key rotation and revocation are governed strictly by the publisher's wallet.
   - `IEAS.sol`: Ethereum Attestation Service core contract validating release attestations matching official schema UIDs.
 - **Non-Custodial Guarantee:** No server holds signing keys. Keys are managed by publisher wallets (hardware wallets, Safe multisig, or CI/CD signing keys).
 
@@ -85,17 +86,19 @@ flowchart TB
 - **Role:** High-speed metadata cache and background coordinator.
 - **Responsibilities:**
   - Coordinates DNS TXT verification challenges.
+  - Executes authorized Registrar on-chain domain registration transactions upon successful DNS TXT verification.
   - Ingests and stores canonical JSON release manifests.
   - Serves cached manifests to client extensions in $< 80\text{ ms}$.
   - Ingests and aggregates independent witness observations.
 - **Zero-Trust Assumption:** The client extension treats the backend as an untrusted cache. Every manifest received is independently verified against the publisher's on-chain EAS attestation.
 
 ### 3.3 Browser Verification Engine (Chrome MV3 Extension)
-- **Role:** End-user cryptographic protection.
+- **Role:** End-user cryptographic protection and verification.
 - **Key Subcomponents:**
-  - **Content Script:** Injected at `document_start` on active web pages; attaches a `MutationObserver` to intercept `<script>` tags before execution.
-  - **Web Worker:** Offloads CPU-intensive SHA-256 byte hashing off the main browser thread.
-  - **Background Service Worker:** Queries active release manifests, checks EAS attestations via Ethereum RPC or backend cache, and controls the toolbar badge state.
+  - **Content Script:** Injected at `document_start` on active web pages; attaches a `MutationObserver` to discover `<script src="...">` elements in the DOM.
+  - **Web Worker:** Offloads CPU-intensive SHA-256 byte hashing off the main browser thread for retrieved script contents.
+  - **Background Service Worker:** Queries active release manifests, checks EAS attestations via Ethereum RPC or backend cache, and evaluates verification states (`VERIFIED_RELEASE_MATCH`, `UNVERIFIED_RESOURCE_DETECTED`, `UNREGISTERED_PUBLISHER`, `UNATTESTED_RELEASE`, `REVOKED_RELEASE`, `INDETERMINATE`).
+  - *Verification Boundary:* Operates across Layers 1–6 (DOM discovery through manifest integrity comparison). Does not claim Layer 7 verification (direct introspection of V8 engine JIT machine code or dynamic `eval()` execution).
 
 ### 3.4 Independent Witness Network
 - **Role:** Multi-party distributed audit layer.
@@ -129,3 +132,4 @@ flowchart TB
 
 - [Ethereum Architecture Guide](https://ethereum.org/en/developers/docs/architecture/)
 - [EAS Documentation](https://docs.attest.org/)
+

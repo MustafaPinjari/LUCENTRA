@@ -52,3 +52,4 @@ Any proposal or pull request attempting to introduce out-of-scope features must 
 ## 5. References
 
 - [Chrome Web Store Policy on Single Purpose and Manifest V3](https://developer.chrome.com/docs/extensions/mv3/policy/)
+

@@ -66,3 +66,4 @@ flowchart TD
 ## 5. References
 
 - [Certificate Transparency (RFC 6962)](https://www.rfc-editor.org/rfc/rfc6962.html)
+

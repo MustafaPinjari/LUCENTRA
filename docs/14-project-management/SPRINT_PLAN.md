@@ -33,3 +33,4 @@ Establish the Foundry smart contract repository, implement `PublisherRegistry.so
 ## 4. References
 
 - [Sprint Template](../templates/SPRINT_TEMPLATE.md)
+

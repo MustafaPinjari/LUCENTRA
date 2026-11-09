@@ -97,3 +97,4 @@ Message passing inside the browser extension must enforce origin validation to p
 ## 6. References
 
 - [Chrome Extension Message Passing API](https://developer.chrome.com/docs/extensions/mv3/messaging/)
+

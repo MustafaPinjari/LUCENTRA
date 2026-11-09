@@ -58,3 +58,4 @@ def check_dns_txt_record(self, challenge_id: str):
 ## 6. References
 
 - [Celery Task Execution Guide](https://docs.celeryq.dev/en/stable/userguide/tasks.html)
+

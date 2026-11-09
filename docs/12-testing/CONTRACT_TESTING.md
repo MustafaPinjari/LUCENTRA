@@ -88,3 +88,4 @@ contract PublisherRegistryTest is Test {
 ## 4. References
 
 - [Foundry Testing Guide](https://book.getfoundry.sh/forge/tests)
+

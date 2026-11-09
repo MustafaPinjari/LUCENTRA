@@ -63,3 +63,4 @@ test("Extension flags tampered script with red alert badge", async () => {
 ## 4. References
 
 - [Playwright Chrome Extension Testing](https://playwright.dev/docs/chrome-extensions)
+

@@ -71,3 +71,4 @@ To realize this vision without creating new centralized chokepoints:
 
 - [W3C Technical Architecture Group (TAG) Finding on Web Architecture](https://www.w3.org/2001/tag/doc/web-architecture-integrity/)
 - [RFC 8785: JSON Canonicalization Scheme](https://www.rfc-editor.org/rfc/rfc8785.html)
+

@@ -56,3 +56,4 @@ worker.postMessage({ url, buffer }, [buffer]); // Buffer is transferred, zero-co
 ## 5. References
 
 - [HTML5 Transferable Objects](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Transferable_objects)
+

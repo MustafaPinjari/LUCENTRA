@@ -61,3 +61,4 @@ Refer to [docs/13-devops/DEVELOPMENT_ENVIRONMENT.md](docs/13-devops/DEVELOPMENT_
 - Python (3.11+) & Poetry / venv
 - Foundry (forge, cast, anvil)
 - Docker & Docker Compose (PostgreSQL & Redis)
+

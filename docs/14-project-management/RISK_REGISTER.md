@@ -29,3 +29,4 @@ This document catalogs technical, operational, regulatory, and adoption risks fa
 
 - [docs/11-security/THREAT_MODEL.md](../11-security/THREAT_MODEL.md)
 - [docs/09-browser-extension/BROWSER_LIMITATIONS.md](../09-browser-extension/BROWSER_LIMITATIONS.md)
+

@@ -96,3 +96,4 @@ Explicit trust boundaries ensure that even in the event of a catastrophic server
 
 - [Chrome Extension Content Script Execution Environments](https://developer.chrome.com/docs/extensions/mv3/content_scripts/#isolated_world)
 - [NIST SP 800-207: Zero Trust Architecture](https://csrc.nist.gov/publications/detail/sp/800-207/final)
+

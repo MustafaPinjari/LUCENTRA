@@ -42,8 +42,9 @@ sequenceDiagram
     Publisher->>Backend: Confirm DNS Record Published
     Backend->>DNS: Query TXT Record
     DNS-->>Backend: TXT Record Confirmed
-    Publisher->>Contract: registerDomain("example.com", publisherWallet)
-    Contract-->>Publisher: DomainRegistered Event Emitted
+    Backend->>Contract: registerDomain("example.com", publisherWallet) [as Authorized Registrar]
+    Contract-->>Backend: DomainRegisteredByRegistrar Event Emitted
+    Backend-->>Publisher: Domain Registration Complete
 
     Note over Publisher, EAS: Phase 2: Release Creation & Attestation
     Publisher->>Publisher: Compile Release Manifest & Compute SHA-256 Hashes
@@ -55,13 +56,13 @@ sequenceDiagram
     Note over User, CDN: Phase 3: Client Verification
     User->>CDN: Navigate to https://example.com
     CDN-->>User: Delivers HTML + JavaScript Assets
-    Note over User: Extension Intercepts Scripts & Computes SHA-256
+    Note over User: Extension Discovers DOM Scripts & Fetches Bytes Out-of-Band
     User->>Backend: Fetch Active Release Manifest for "example.com"
-    User->>EAS: Verify Attestation UID & On-Chain Signature
+    User->>EAS: Verify Attestation UID & Key Authorization
     alt Hashes Match & Attestation Valid
-        User-->>User: Surface Green Shield: "VERIFIED PUBLISHER"
+        User-->>User: Surface Green Shield: "VERIFIED_RELEASE_MATCH"
     else Hash Mismatch or Unknown Script Injected
-        User-->>User: Surface Red Alert: "TAMPERING DETECTED"
+        User-->>User: Surface Red Alert: "UNVERIFIED_RESOURCE_DETECTED"
     end
 ```
 
@@ -104,3 +105,4 @@ sequenceDiagram
 - [Ethereum Attestation Service Documentation](https://docs.attest.org/)
 - [EIP-712: Typed structured data hashing and signing](https://eips.ethereum.org/EIPS/eip-712)
 - [RFC 8785: JSON Canonicalization Scheme](https://www.rfc-editor.org/rfc/rfc8785.html)
+

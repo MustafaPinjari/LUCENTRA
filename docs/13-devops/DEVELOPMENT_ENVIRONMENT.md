@@ -67,3 +67,4 @@ pnpm --filter @lucentra/extension build:watch
 
 - [Foundry Installation](https://book.getfoundry.sh/getting-started/installation)
 - [Docker Compose Documentation](https://docs.docker.com/compose/)
+

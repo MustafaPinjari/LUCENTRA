@@ -26,13 +26,14 @@ This document details the functional user stories for LUCENTRA, defining the val
   - Clear DNS instructions provided: host `_lucentra-verification.<domain>`, value `lucentra-challenge=<token>`.
   - Backend Celery task validates DNS TXT propagation within 30 seconds.
 
-- **US-PUB-02 (On-Chain Key Registration):**  
-  *As a* website publisher,  
-  *I want to* register my Ethereum wallet address as an authorized signing key for my verified domain,  
-  *So that* clients can verify my cryptographic release signatures against an on-chain source of truth.  
+- **US-PUB-02 (On-Chain Domain Registration via Registrar):**  
+  *As a* website publisher with verified DNS ownership,  
+  *I want* the authorized LUCENTRA registrar service to submit my domain registration to `PublisherRegistry.sol`,  
+  *So that* my wallet address is immutably bound as the owner without requiring public relaying of tickets.  
   *Acceptance Criteria:*
-  - Smart contract verifies that the domain verification signature originated from the backend validator.
-  - Contract records domain-to-address mapping and emits `DomainRegistered` event.
+  - Backend registrar worker submits `registerDomain(domain, ownerAddress)` to the smart contract.
+  - Contract records domain-to-owner mapping, authorizes owner address, and emits `DomainRegisteredByRegistrar` event.
+  - Publisher wallet retains sovereign authority over signing-key rotation (`authorizeKey` / `revokeKey`).
 
 - **US-PUB-03 (Release Manifest Creation & EIP-712 Signing):**  
   *As a* website publisher,  
@@ -57,21 +58,24 @@ This document details the functional user stories for LUCENTRA, defining the val
 
 - **US-USR-01 (Real-Time Script Integrity Verification):**  
   *As a* web user visiting a registered website,  
-  *I want* the LUCENTRA Chrome Extension to automatically verify all executed JavaScript resources against the publisher's signed release manifest,  
-  *So that* I am protected from Magecart attacks and supply chain tampering without manual effort.  
+  *I want* the LUCENTRA Chrome Extension to discover DOM scripts, retrieve their resources out-of-band, and verify hashes against the publisher's signed release manifest,  
+  *So that* I am alerted to unlisted or tampered resources before interacting with the site.  
   *Acceptance Criteria:*
-  - Content script detects all `<script>` elements in the DOM.
-  - Web Worker computes SHA-256 digests in $< 150\text{ ms}$.
-  - Hashes are compared against the cached release manifest.
+  - Content script discovers external `<script>` elements in the DOM.
+  - Web Worker computes SHA-256 digests in $< 150\text{ ms}$ (warm cache target).
+  - Retrieved hashes are compared against the active EAS-attested release manifest.
+  - Extension clearly discloses that verification evaluates retrieved resource integrity against the manifest, not in-memory V8 engine execution bytes.
 
 - **US-USR-02 (Visual Verification Status Badge):**  
   *As a* web user,  
   *I want* an intuitive browser toolbar icon indicating current verification state,  
-  *So that* I can immediately know if the website is verified, unverified, or compromised.  
+  *So that* I can immediately know if the website release is verified, unverified, or revoked.  
   *Acceptance Criteria:*
-  - Green icon: 100% scripts verified and attested.
-  - Red flashing warning badge: Script hash mismatch or unauthorized script detected.
-  - Gray icon: Unregistered domain.
+  - Emerald Green shield (`✓`): `VERIFIED_RELEASE_MATCH`.
+  - Rose Red warning badge (`!`): `UNVERIFIED_RESOURCE_DETECTED`.
+  - Slate gray badge: `UNREGISTERED_PUBLISHER`.
+  - Amber badge: `UNATTESTED_RELEASE`.
+  - Crimson alert badge: `REVOKED_RELEASE`.
 
 - **US-USR-03 (Detailed Evidence Inspection Popup):**  
   *As a* security-conscious user,  
@@ -105,3 +109,4 @@ This document details the functional user stories for LUCENTRA, defining the val
 ## 4. References
 
 - [Agile Alliance: User Stories Primer](https://www.agilealliance.org/glossary/user-stories/)
+

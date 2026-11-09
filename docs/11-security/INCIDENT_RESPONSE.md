@@ -19,21 +19,23 @@ This document establishes the emergency procedures, escalation paths, and remedi
 flowchart TD
     Incident[Security Incident Detected] --> Triage{Incident Classification}
     
-    Triage -- Severity 1: Publisher Signing Key Compromise --> Action1[1. Publisher Owner calls revokeKey on PublisherRegistry<br/>2. Invalidate EAS Attestations<br/>3. Purge API Redis Cache]
-    Triage -- Severity 1: Active Website Magecart Skimmer --> Action2[1. Alert Publisher Security Lead<br/>2. Issue On-Chain Revocation<br/>3. Extension flags MISMATCH]
+    Triage -- Severity 1: Publisher Signing Key Compromise --> Action1[1. Publisher Owner calls revokeSigningKey on PublisherRegistry<br/>2. Invalidate EAS Attestations<br/>3. Purge API Redis Cache]
+    Triage -- Severity 1: Active Website Tampering / Skimmer --> Action2[1. Alert Publisher Security Lead<br/>2. Issue On-Chain Revocation<br/>3. Extension flags UNVERIFIED_RESOURCE_DETECTED]
+    Triage -- Severity 1: Registrar Key Compromise --> Action4[1. Contract Owner calls setRegistrar on PublisherRegistry<br/>2. Rotate Registrar backend credentials<br/>3. Audit recent registrations]
     Triage -- Severity 2: Backend Server Compromised --> Action3[1. Rotate Backend DB & RPC Keys<br/>2. Rebuild Containers from Git Source<br/>3. Verify Contract Integrations]
     
     Action1 --> PostMortem[Conduct Formal Post-Mortem & Publish Disclosure]
     Action2 --> PostMortem
     Action3 --> PostMortem
+    Action4 --> PostMortem
 ```
 
 ---
 
 ## 3. Communication & Key Contacts
 
-- **Security Team Dispatch:** `security@lucentra.io`
-- **SLA:** Critical incidents acknowledged within 15 minutes; on-chain key revocation executed within 1 hour.
+- **Security Team Dispatch:** `security@lucentra.io` `[NEEDS_CONFIRMATION: Production security mailbox to be provisioned prior to public testnet deployment]`
+- **SLA:** `[NEEDS_CONFIRMATION: Operational response SLAs are proposed targets subject to core team staffing approval]` Critical incidents acknowledged within 15 minutes; on-chain key revocation executed within 1 hour.
 
 ---
 
@@ -47,3 +49,4 @@ flowchart TD
 ## 5. References
 
 - [NIST SP 800-61: Computer Security Incident Handling Guide](https://csrc.nist.gov/publications/detail/sp/800-61/rev-2/final)
+

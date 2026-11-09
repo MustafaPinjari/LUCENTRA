@@ -26,11 +26,11 @@ LUCENTRA bridges the gap between web transport security (HTTPS/TLS) and applicat
 Attacks such as Magecart, BGP hijacks, CDN account takeovers, internal server compromises, and malicious third-party script injections bypass HTTPS completely because the malicious payload is served over a valid TLS session.
 
 LUCENTRA introduces a multi-tier cryptographic integrity protocol:
-1. **Publisher Identity Binding:** Publishers cryptographically bind their Ethereum wallet address to their domain name using DNS TXT record verification.
+1. **Publisher Identity Binding:** Publishers prove domain ownership via DNS TXT record verification, after which an authorized Registrar submits the on-chain binding in `PublisherRegistry.sol`.
 2. **Release Manifest Authorization:** Publishers compile a deterministic JSON release manifest containing exact SHA-256 digests of all production JavaScript assets.
 3. **EIP-712 Signing:** Publishers sign the manifest digest using their verified private key.
-4. **On-Chain Attestation:** Releases are anchored immutably via the Ethereum Attestation Service (EAS).
-5. **Client-Side Browser Verification:** A lightweight Chrome Manifest V3 extension intercepts and computes SHA-256 hashes of scripts loaded into the DOM, validates the publisher's EAS attestation against the Ethereum state, and warns the user if an unauthorized script is executed.
+4. **On-Chain Attestation:** Releases are anchored on-chain via the Ethereum Attestation Service (EAS) with explicit revocation semantics.
+5. **Client-Side Browser Verification:** A lightweight Chrome Manifest V3 extension discovers scripts in the DOM, fetches resource streams out-of-band to compute SHA-256 hashes, validates against the publisher's signed release manifest and on-chain EAS attestation, and cautions the user if an unverified or altered resource is detected.
 6. **Witness Audit Layer:** Independent witness nodes periodically crawl registered domains, compute live resource hashes, and log cryptographic observations to prevent localized or targeted tampering (split-view attacks).
 
 ```mermaid
@@ -46,7 +46,7 @@ flowchart TD
         Contract[PublisherRegistry Contract]
         EAS[Ethereum Attestation Service]
         Signature -->|Attest Release| EAS
-        PublisherWallet -->|Register Domain Key| Contract
+        PublisherWallet -->|Authorize / Revoke Signing Keys| Contract
     end
 
     subgraph Backend["LUCENTRA Backend & Witness"]
@@ -54,13 +54,15 @@ flowchart TD
         DB[(PostgreSQL)]
         Workers[Celery Workers]
         DNS -->|Verify Token| Workers
+        Workers -->|Register Verified Domain as Registrar| Contract
         WitnessNode[Independent Witness Nodes] -->|Cross-Verify Digest| API
     end
 
     subgraph Client["End-User Browser"]
         ChromeExt[Chrome MV3 Extension]
-        DOM[Browser DOM & Network Pipeline]
-        DOM -->|Compute SHA-256| ChromeExt
+        DOM[Browser DOM & Scripts]
+        DOM -->|DOM Discovery & Resource Retrieval| ChromeExt
+        ChromeExt -->|Compute SHA-256 in Web Worker| Hashes[Computed SHA-256]
         Contract -->|Verify Registered Key| ChromeExt
         EAS -->|Verify Release Attestation| ChromeExt
         ChromeExt --> UI[Verification Status Badge]
@@ -97,10 +99,11 @@ flowchart TD
 
 ---
 
-## 7. Known Limitations
+## 7. Known Limitations & Verification Boundaries
 
+- **Exact Execution vs. Retrieval Boundary:** The Chrome Extension retrieves discovered resources out-of-band and verifies their hashes against the publisher's attested manifest. It does not inspect in-memory V8 engine execution bytes or JIT compiled bytecode.
 - **Inline Script Parsing:** Complex inline dynamic scripts require nonce/hash hashing or CSP-level integration; currently, external and bundled static scripts form the primary verification scope for MVP.
-- **MV3 Pre-execution Blocking:** Manifest V3 limits synchronous blocking of network requests without enterprise policy; the extension uses DOM mutation observers and early script interception.
+- **MV3 Pre-execution Blocking:** Manifest V3 limits synchronous blocking of network requests without enterprise policy; the extension uses DOM mutation observers and out-of-band script inspection.
 
 ---
 
@@ -119,3 +122,4 @@ flowchart TD
 - [EIP-712: Typed structured data hashing and signing](https://eips.ethereum.org/EIPS/eip-712)
 - [RFC 8785: JSON Canonicalization Scheme (JCS)](https://www.rfc-editor.org/rfc/rfc8785.html)
 - [W3C Subresource Integrity (SRI)](https://www.w3.org/TR/SRI/)
+

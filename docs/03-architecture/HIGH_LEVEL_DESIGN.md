@@ -29,8 +29,9 @@ sequenceDiagram
     Backend-->>Publisher: TXT Challenge Token
     Publisher->>Backend: POST /api/v1/domains/verify-dns/
     Backend->>Backend: Verify DNS TXT on Authoritative Nameservers
-    Backend-->>Publisher: Domain Verified Proof
-    Publisher->>Contract: registerDomain(domain, publisherAddress)
+    Backend->>Contract: registerPublisherDomain(domain, publisherAddress, initialSigningKey) [onlyRegistrar]
+    Contract-->>Backend: Emits DomainRegisteredByRegistrar event
+    Backend-->>Publisher: Domain Verified & Registered On-Chain
 
     Publisher->>Publisher: Generate ReleaseManifest.json
     Publisher->>Publisher: EIP-712 Sign(manifestHash)
@@ -43,7 +44,7 @@ sequenceDiagram
     Backend-->>Client: Cached Release Manifest + EAS UID
     Client->>EAS: Direct RPC query to verify Attestation UID
     Client->>Client: Web Worker hashes scripts & compares to manifest
-    Client-->>Client: Renders Status Badge (Green / Red)
+    Client-->>Client: Renders Status Badge (e.g. VERIFIED_RELEASE_MATCH / UNVERIFIED_RESOURCE_DETECTED)
 ```
 
 ---
@@ -94,3 +95,4 @@ sequenceDiagram
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Viem Documentation](https://viem.sh/)
 - [Django REST Framework](https://www.django-rest-framework.org/)
+

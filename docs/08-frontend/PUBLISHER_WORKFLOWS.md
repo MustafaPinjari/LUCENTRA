@@ -60,3 +60,4 @@ sequenceDiagram
 ## 5. References
 
 - [Nielsen Norman Group Web UX Patterns](https://www.nngroup.com/)
+

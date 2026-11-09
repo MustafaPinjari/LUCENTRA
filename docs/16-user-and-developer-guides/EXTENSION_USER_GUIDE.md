@@ -39,3 +39,4 @@ Clicking the extension icon opens the **Verification Report Popup**:
 
 - [docs/04-protocol/VERIFICATION_STATES.md](../04-protocol/VERIFICATION_STATES.md)
 - [docs/08-frontend/VERIFICATION_REPORT_UI.md](../08-frontend/VERIFICATION_REPORT_UI.md)
+

@@ -126,3 +126,4 @@ This document specifies the REST API endpoints, request/response JSON schemas, a
 ## 4. References
 
 - [OpenAPI Specification 3.1](https://spec.openapis.org/oas/latest.html)
+

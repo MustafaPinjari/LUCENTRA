@@ -53,3 +53,4 @@ pie title Verification Status Color Palette
 ## 5. References
 
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+

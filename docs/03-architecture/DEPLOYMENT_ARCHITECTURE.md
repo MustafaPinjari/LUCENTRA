@@ -98,3 +98,4 @@ All internal database and Redis connections must be confined within private VPC 
 
 - [Next.js Deployment Documentation](https://nextjs.org/docs/deployment)
 - [AWS Well-Architected Framework](https://aws.amazon.com/architecture/well-architected/)
+

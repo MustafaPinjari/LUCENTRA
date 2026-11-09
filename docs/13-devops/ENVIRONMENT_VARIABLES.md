@@ -26,11 +26,12 @@ ALLOWED_HOSTS="localhost,127.0.0.1,api.lucentra.io"
 DATABASE_URL="postgres://postgres:postgres@localhost:5432/lucentra"
 REDIS_URL="redis://localhost:6379/0"
 
-# Blockchain & Verifier
+# Blockchain & Registrar
 SEPOLIA_RPC_URL="https://sepolia.infura.io/v3/YOUR_KEY"
-DNS_VERIFIER_PRIVATE_KEY="0x..." # Backend key for signing DNS proof tickets
+REGISTRAR_PRIVATE_KEY="0x..." # Backend key for registering domains via PublisherRegistry.sol
 PUBLISHER_REGISTRY_ADDRESS="0x..."
 EAS_CONTRACT_ADDRESS="0xC2679fBD37d54388Ce493F1DB75320D236e1815e"
+EAS_SCHEMA_UID="0x..."
 ```
 
 ### 2.2 Next.js Dashboard (`apps/dashboard/.env.local`)
@@ -60,3 +61,4 @@ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID="YOUR_WALLETCONNECT_ID"
 ## 5. References
 
 - [The Twelve-Factor App: Config](https://12factor.net/config)
+

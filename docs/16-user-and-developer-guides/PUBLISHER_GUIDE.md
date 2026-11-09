@@ -41,3 +41,4 @@ This user guide walks web application publishers through registering a domain, c
 
 - [docs/08-frontend/PUBLISHER_WORKFLOWS.md](../08-frontend/PUBLISHER_WORKFLOWS.md)
 - [docs/05-cryptography/EIP712_SIGNING.md](../05-cryptography/EIP712_SIGNING.md)
+

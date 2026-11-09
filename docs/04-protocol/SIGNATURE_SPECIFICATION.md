@@ -114,3 +114,4 @@ function verifyReleaseSignature(
 ## 5. References
 
 - [EIP-712: Ethereum Typed Structured Data Hashing and Signing](https://eips.ethereum.org/EIPS/eip-712)
+
