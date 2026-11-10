@@ -4,8 +4,8 @@ pragma solidity 0.8.24;
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {ISignatureVerifier} from "./interfaces/ISignatureVerifier.sol";
-import {IPublisherRegistry} from "./interfaces/IPublisherRegistry.sol";
+import {ISignatureVerifier} from "src/interfaces/ISignatureVerifier.sol";
+import {IPublisherRegistry} from "src/interfaces/IPublisherRegistry.sol";
 
 /**
  * @title SignatureVerifier

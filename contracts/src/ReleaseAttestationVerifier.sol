@@ -11,9 +11,9 @@ import {
     RevocationRequestData
 } from "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
 import {Attestation} from "@ethereum-attestation-service/eas-contracts/contracts/Common.sol";
-import {IPublisherRegistry} from "./interfaces/IPublisherRegistry.sol";
-import {ISignatureVerifier} from "./interfaces/ISignatureVerifier.sol";
-import {IReleaseAttestationVerifier} from "./interfaces/IReleaseAttestationVerifier.sol";
+import {IPublisherRegistry} from "src/interfaces/IPublisherRegistry.sol";
+import {ISignatureVerifier} from "src/interfaces/ISignatureVerifier.sol";
+import {IReleaseAttestationVerifier} from "src/interfaces/IReleaseAttestationVerifier.sol";
 
 /**
  * @title ReleaseAttestationVerifier

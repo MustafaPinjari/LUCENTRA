@@ -6,7 +6,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {IPublisherRegistry} from "./interfaces/IPublisherRegistry.sol";
+import {IPublisherRegistry} from "src/interfaces/IPublisherRegistry.sol";
 
 /**
  * @title PublisherRegistry
