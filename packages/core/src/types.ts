@@ -319,3 +319,15 @@ export interface VerifyReleaseResult {
   readonly securityDisclosure: string;
 }
 
+/**
+ * EIP-712 Structured Message fields for RegistrationAuthorization (ADR-011).
+ */
+export interface RegistrationAuthorizationMessage {
+  readonly domain: string;
+  readonly publisher: Address;
+  readonly initialSigningKey: Address;
+  readonly nonce: bigint;
+  readonly deadline: bigint;
+}
+
+

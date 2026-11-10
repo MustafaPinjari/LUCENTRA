@@ -28,6 +28,10 @@ function Check-Tool {
 
     Write-Host -NoNewline "[*] Checking for $Name... "
     $cmdPath = Get-Command $Command -ErrorAction SilentlyContinue
+    if (-not $cmdPath -and (Test-Path "$PSScriptRoot/../.bin/$Command.exe")) {
+        $Command = "$PSScriptRoot/../.bin/$Command.exe"
+        $cmdPath = $Command
+    }
 
     if ($cmdPath) {
         try {

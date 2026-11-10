@@ -17,6 +17,7 @@ import type {
   Address,
   Hex,
   LucentraEip712Domain,
+  RegistrationAuthorizationMessage,
   ReleaseManifest,
   ReleaseManifestMessage,
 } from "./types.js";
@@ -49,6 +50,25 @@ export const RELEASE_MANIFEST_EIP712_TYPES = {
     { name: "manifestHash", type: "bytes32" },
     { name: "timestamp", type: "uint64" },
     { name: "expiresAt", type: "uint64" },
+  ],
+} as const;
+
+/**
+ * EIP-712 Primary type name for registration authorizations (ADR-011).
+ */
+export const REGISTRATION_AUTHORIZATION_PRIMARY_TYPE =
+  "RegistrationAuthorization" as const;
+
+/**
+ * Approved EIP-712 type definition for RegistrationAuthorization (ADR-011).
+ */
+export const REGISTRATION_AUTHORIZATION_EIP712_TYPES = {
+  RegistrationAuthorization: [
+    { name: "domain", type: "string" },
+    { name: "publisher", type: "address" },
+    { name: "initialSigningKey", type: "address" },
+    { name: "nonce", type: "uint256" },
+    { name: "deadline", type: "uint64" },
   ],
 } as const;
 
@@ -192,4 +212,91 @@ export async function verifyReleaseSignature(
     recoveredSigner,
   };
 }
+
+export interface SignRegistrationAuthOptions {
+  readonly domain: string;
+  readonly publisher: Address;
+  readonly initialSigningKey: Address;
+  readonly nonce: bigint;
+  readonly deadline: bigint;
+  readonly privateKey: Hex;
+  readonly chainId?: number;
+  readonly verifyingContract?: Address;
+}
+
+/**
+ * Signs an EIP-712 RegistrationAuthorization intent (ADR-011) using the publisher's wallet.
+ */
+export async function signRegistrationAuthorizationWithAccount(
+  options: SignRegistrationAuthOptions
+): Promise<{ signature: Hex; signer: Address }> {
+  try {
+    const account = privateKeyToAccount(options.privateKey);
+    const domain = createLucentraDomain(
+      options.chainId ?? DEFAULT_CHAIN_ID,
+      options.verifyingContract ?? DEFAULT_VERIFYING_CONTRACT
+    );
+    const message: RegistrationAuthorizationMessage = {
+      domain: options.domain,
+      publisher: getAddress(options.publisher),
+      initialSigningKey: getAddress(options.initialSigningKey),
+      nonce: options.nonce,
+      deadline: options.deadline,
+    };
+
+    const signature = await account.signTypedData({
+      domain: domain as unknown as TypedDataDomain,
+      types: REGISTRATION_AUTHORIZATION_EIP712_TYPES,
+      primaryType: REGISTRATION_AUTHORIZATION_PRIMARY_TYPE,
+      message,
+    });
+
+    return {
+      signature,
+      signer: account.address,
+    };
+  } catch (err: unknown) {
+    throw new LucentraError(
+      "INVALID_EIP712_SIGNATURE",
+      `Failed to sign registration authorization: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+}
+
+export interface RecoverRegistrationAuthParams {
+  readonly message: RegistrationAuthorizationMessage;
+  readonly signature: Hex;
+  readonly chainId?: number;
+  readonly verifyingContract?: Address;
+}
+
+/**
+ * Recovers the publisher address that signed a RegistrationAuthorization intent.
+ */
+export async function recoverRegistrationAuthorizationSigner(
+  params: RecoverRegistrationAuthParams
+): Promise<Address> {
+  try {
+    const domain = createLucentraDomain(
+      params.chainId ?? DEFAULT_CHAIN_ID,
+      params.verifyingContract ?? DEFAULT_VERIFYING_CONTRACT
+    );
+
+    const recovered = await recoverTypedDataAddress({
+      domain: domain as unknown as TypedDataDomain,
+      types: REGISTRATION_AUTHORIZATION_EIP712_TYPES,
+      primaryType: REGISTRATION_AUTHORIZATION_PRIMARY_TYPE,
+      message: params.message,
+      signature: params.signature,
+    });
+
+    return getAddress(recovered);
+  } catch (err: unknown) {
+    throw new LucentraError(
+      "INVALID_EIP712_SIGNATURE",
+      `Registration authorization recovery failed: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+}
+
 

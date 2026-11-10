@@ -42,9 +42,12 @@ if (Test-Path "packages/core/package.json") {
 # 3. Smart Contracts (Foundry)
 Write-Host "`n[3/6] Testing Smart Contracts (Foundry)..." -ForegroundColor Yellow
 $forgeCmd = Get-Command "forge" -ErrorAction SilentlyContinue
+if (-not $forgeCmd -and (Test-Path "$PSScriptRoot/../.bin/forge.exe")) {
+    $forgeCmd = (Resolve-Path "$PSScriptRoot/../.bin/forge.exe").Path
+}
 if ($forgeCmd -and (Test-Path "contracts/foundry.toml")) {
     Push-Location "contracts"
-    & forge test -vvv
+    & $forgeCmd test -vvv
     if ($LASTEXITCODE -ne 0) { $Failures++ }
     $ExecutedSuites++
     Pop-Location

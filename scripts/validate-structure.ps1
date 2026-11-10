@@ -93,7 +93,7 @@ foreach ($rep in $RequiredReports) {
 # 4. Check Internal Markdown Links
 Write-Host "`n[4/4] Validating Internal Markdown Links across all documents..." -ForegroundColor Yellow
 $mdFiles = Get-ChildItem -Path . -Recurse -Filter *.md | Where-Object { 
-    $_.FullName -notmatch '\\(\.git|node_modules|\.venv|env|dist|out|\.next)\\' 
+    $_.FullName -notmatch '\\(\.git|node_modules|\.venv|env|dist|out|\.next|lib)\\' 
 }
 
 $linkCount = 0

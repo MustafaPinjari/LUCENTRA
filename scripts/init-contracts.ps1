@@ -21,6 +21,9 @@ if (-not (Test-Path $ContractsDir)) {
 Set-Location $ContractsDir
 
 $forgeCmd = Get-Command "forge" -ErrorAction SilentlyContinue
+if (-not $forgeCmd -and (Test-Path "$PSScriptRoot/../.bin/forge.exe")) {
+    $forgeCmd = (Resolve-Path "$PSScriptRoot/../.bin/forge.exe").Path
+}
 
 if (-not $forgeCmd) {
     Write-Host "[WARNING] 'forge' (Foundry) was not found in PATH." -ForegroundColor Yellow
@@ -35,7 +38,7 @@ if (-not $forgeCmd) {
 } else {
     if (-not (Test-Path "foundry.toml")) {
         Write-Host "Initializing Foundry project with forge init..." -ForegroundColor Green
-        and forge init --no-commit --force
+        & $forgeCmd init --no-commit --force
     } else {
         Write-Host "Foundry project already initialized in contracts/." -ForegroundColor Gray
     }

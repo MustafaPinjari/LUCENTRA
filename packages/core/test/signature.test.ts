@@ -14,6 +14,8 @@ import {
   recoverReleaseSigner,
   signReleaseManifestWithAccount,
   verifyReleaseSignature,
+  signRegistrationAuthorizationWithAccount,
+  recoverRegistrationAuthorizationSigner,
 } from "../src/signature.js";
 import type { ReleaseManifest } from "../src/types.js";
 
@@ -167,4 +169,74 @@ test("EIP-712: Throws LucentraError on malformed signature bytes", async () => {
     },
     (err: unknown) => err instanceof LucentraError && err.code === "INVALID_EIP712_SIGNATURE"
   );
+});
+
+test("EIP-712 (ADR-011): Sign and recover valid RegistrationAuthorization intent", async () => {
+  const testDomain = "app.uniswap.org";
+  const initialSigningKey = "0x2222222222222222222222222222222222222222";
+  const nonce = 0n;
+  const deadline = 1800000000n;
+
+  const { signature, signer } = await signRegistrationAuthorizationWithAccount({
+    domain: testDomain,
+    publisher: EXPECTED_SIGNER,
+    initialSigningKey,
+    nonce,
+    deadline,
+    privateKey: TEST_PRIVATE_KEY,
+    chainId: DEFAULT_CHAIN_ID,
+    verifyingContract: DEFAULT_VERIFYING_CONTRACT,
+  });
+
+  assert.equal(signer.toLowerCase(), EXPECTED_SIGNER.toLowerCase());
+  assert.equal(signature.length, 132); // 0x + 130 hex chars = 65 bytes
+
+  const recovered = await recoverRegistrationAuthorizationSigner({
+    message: {
+      domain: testDomain,
+      publisher: EXPECTED_SIGNER,
+      initialSigningKey,
+      nonce,
+      deadline,
+    },
+    signature,
+    chainId: DEFAULT_CHAIN_ID,
+    verifyingContract: DEFAULT_VERIFYING_CONTRACT,
+  });
+
+  assert.equal(recovered.toLowerCase(), EXPECTED_SIGNER.toLowerCase());
+});
+
+test("EIP-712 (ADR-011): Detects altered nonce or deadline in RegistrationAuthorization", async () => {
+  const testDomain = "app.uniswap.org";
+  const initialSigningKey = "0x2222222222222222222222222222222222222222";
+  const nonce = 0n;
+  const deadline = 1800000000n;
+
+  const { signature } = await signRegistrationAuthorizationWithAccount({
+    domain: testDomain,
+    publisher: EXPECTED_SIGNER,
+    initialSigningKey,
+    nonce,
+    deadline,
+    privateKey: TEST_PRIVATE_KEY,
+    chainId: DEFAULT_CHAIN_ID,
+    verifyingContract: DEFAULT_VERIFYING_CONTRACT,
+  });
+
+  // Tamper with nonce (attempt replay with incremented nonce)
+  const recoveredAlteredNonce = await recoverRegistrationAuthorizationSigner({
+    message: {
+      domain: testDomain,
+      publisher: EXPECTED_SIGNER,
+      initialSigningKey,
+      nonce: 1n, // Tampered nonce
+      deadline,
+    },
+    signature,
+    chainId: DEFAULT_CHAIN_ID,
+    verifyingContract: DEFAULT_VERIFYING_CONTRACT,
+  });
+
+  assert.notEqual(recoveredAlteredNonce.toLowerCase(), EXPECTED_SIGNER.toLowerCase());
 });

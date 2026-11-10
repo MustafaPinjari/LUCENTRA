@@ -12,6 +12,7 @@ export type {
   ReleaseResource,
   ReleaseManifest,
   LucentraEip712Domain,
+  RegistrationAuthorizationMessage,
   ReleaseManifestMessage,
   SignedReleaseEnvelope,
   VerificationState,
@@ -57,14 +58,20 @@ export {
   DEFAULT_VERIFYING_CONTRACT,
   RELEASE_MANIFEST_PRIMARY_TYPE,
   RELEASE_MANIFEST_EIP712_TYPES,
+  REGISTRATION_AUTHORIZATION_PRIMARY_TYPE,
+  REGISTRATION_AUTHORIZATION_EIP712_TYPES,
   createLucentraDomain,
   buildReleaseManifestMessage,
   signReleaseManifestWithAccount,
   recoverReleaseSigner,
   verifyReleaseSignature,
+  signRegistrationAuthorizationWithAccount,
+  recoverRegistrationAuthorizationSigner,
   type SignReleaseOptions,
   type RecoverReleaseSignerParams,
   type VerifyReleaseSignatureParams,
+  type SignRegistrationAuthOptions,
+  type RecoverRegistrationAuthParams,
 } from "./signature.js";
 
 // High-Level Verification Pipeline

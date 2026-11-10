@@ -123,4 +123,5 @@ logs/
 *.temp
 scratch/
 brain/
+.bin/
 
