@@ -16,12 +16,12 @@ This document provides official, reproducible cryptographic test vectors for SHA
 ## 2. Test Vector 1: SHA-256 Asset Hashing
 
 ### Input Data
-- File Content: `console.log("Hello, LUCENTRA!");\n` (30 bytes, UTF-8 encoded).
+- File Content: `console.log("Hello, LUCENTRA!");\n` (33 bytes, UTF-8 encoded).
 - Hex Bytes: `636f6e736f6c652e6c6f67282248656c6c6f2c204c5543454e5452412122293b0a`
 
 ### Expected Outputs
-- Raw Hex Digest: `4d4be953a817b1897d26bb4387877ce5cb8927878347fe3a693240ee09736829`
-- Standard Formatted String: `sha256:4d4be953a817b1897d26bb4387877ce5cb8927878347fe3a693240ee09736829`
+- Raw Hex Digest: `09ef5fbb033f41f426ed9f32441e763efba30c5d256c9bb56d9deddd7bff4bf1`
+- Standard Formatted String: `sha256:09ef5fbb033f41f426ed9f32441e763efba30c5d256c9bb56d9deddd7bff4bf1`
 
 ---
 
@@ -35,8 +35,8 @@ This document provides official, reproducible cryptographic test vectors for SHA
     {
       "type": "script",
       "path": "/bundle.js",
-      "sha256": "sha256:4d4be953a817b1897d26bb4387877ce5cb8927878347fe3a693240ee09736829",
-      "size": 30
+      "sha256": "sha256:09ef5fbb033f41f426ed9f32441e763efba30c5d256c9bb56d9deddd7bff4bf1",
+      "size": 33
     }
   ],
   "expiresAt": 1799999999,
@@ -48,11 +48,11 @@ This document provides official, reproducible cryptographic test vectors for SHA
 
 ### Expected Canonical Output String (Byte-for-byte exact UTF-8)
 ```json
-{"createdAt":1700000000,"domain":"example.com","expiresAt":1799999999,"resources":[{"path":"/bundle.js","sha256":"sha256:4d4be953a817b1897d26bb4387877ce5cb8927878347fe3a693240ee09736829","size":30,"type":"script"}],"schemaVersion":"LUCENTRA-Manifest-v0.1","version":"0.1.0"}
+{"createdAt":1700000000,"domain":"example.com","expiresAt":1799999999,"resources":[{"path":"/bundle.js","sha256":"sha256:09ef5fbb033f41f426ed9f32441e763efba30c5d256c9bb56d9deddd7bff4bf1","size":33,"type":"script"}],"schemaVersion":"LUCENTRA-Manifest-v0.1","version":"0.1.0"}
 ```
 
 ### Expected Manifest Hash
-- SHA-256 of Canonical String: `0x7a30c5e3155799a74421b47596ff1b3924fdbb8d655f419b2a64c4897f1f3e72`
+- SHA-256 of Canonical String: `0xc1e5d6c7fc531240aaa94d85078f8fcef4a7407571bc13cc7586a417411259d4`
 
 ---
 
@@ -66,17 +66,18 @@ This document provides official, reproducible cryptographic test vectors for SHA
 
 ### Signer Key Pair
 - Private Key: `0x4c0883a69102937d6231471b5dbb6204db7e716b78ac5c7827453b4112f46973`
-- Derived Address: `0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC`
+- Derived Address: `0xa0629861EeD36918aeF4750df910253a59b26977`
 
 ### Message Fields
 - `domain`: `"example.com"`
 - `version`: `"0.1.0"`
-- `manifestHash`: `0x7a30c5e3155799a74421b47596ff1b3924fdbb8d655f419b2a64c4897f1f3e72`
+- `manifestHash`: `0xc1e5d6c7fc531240aaa94d85078f8fcef4a7407571bc13cc7586a417411259d4`
 - `timestamp`: `1700000000`
 - `expiresAt`: `1799999999`
 
 ### Expected Output Signature
-- `signature`: Valid secp256k1 65-byte signature recovering to `0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC`.
+- `signature`: `0xdebe38b2c5399315ce7083f0e46f43ce6e45dd1351325b11ef1f88e734178a974e0f49fa9a7373d854b93c12f348546278579fa41638720f1553ea0b7a7a495f1c`
+- Recovered Address: `0xa0629861EeD36918aeF4750df910253a59b26977` (Matches Signer Address exactly)
 
 ---
 

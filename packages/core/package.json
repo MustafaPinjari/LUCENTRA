@@ -1,0 +1,32 @@
+{
+  "name": "@lucentra/core",
+  "version": "0.1.0",
+  "description": "LUCENTRA Cryptographic Core Engine: Canonicalization, Hashing, EIP-712 Signing and Release Verification",
+  "type": "module",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    }
+  },
+  "files": [
+    "dist/src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test dist/test/*.test.js",
+    "demo": "node dist/src/demo.js"
+  },
+  "dependencies": {
+    "canonicalize": "^2.0.0",
+    "viem": "^2.10.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "typescript": "^5.4.5"
+  }
+}

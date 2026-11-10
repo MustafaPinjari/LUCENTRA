@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     LUCENTRA Environment Diagnostics and Tooling Verification Script
 .DESCRIPTION

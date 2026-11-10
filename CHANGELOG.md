@@ -8,6 +8,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+---
+
+## [0.1.0-core] - 2026-11-10
+
+### Added
+- **Cryptographic Core Engine (`packages/core`):**
+  - Schema validation for `LUCENTRA-Manifest-v0.1` (`src/validation.ts`) including UTS #46 canonical domain normalization, root-relative resource path sanitization, and strict structural bounds (1,000 resources max, 5 MiB max).
+  - Deterministic RFC 8785 JSON Canonicalization Scheme (JCS) serializer (`src/canonical.ts`) with UTF-16 code unit key sorting and automatic `signature` omission.
+  - FIPS 180-4 SHA-256 cryptographic hashing (`src/hash.ts`) for canonical manifest JSON and arbitrary JavaScript resource bytes (`sha256:<64-hex-chars>`).
+  - Viem-based EIP-712 structured typed data signing and secp256k1 signer address recovery (`src/signature.ts`).
+  - Full 6-state release verification pipeline (`src/verifier.ts`) evaluating `VERIFIED_RELEASE_MATCH`, `UNVERIFIED_RESOURCE_DETECTED`, `UNREGISTERED_PUBLISHER`, `UNATTESTED_RELEASE`, `REVOKED_RELEASE`, and `INDETERMINATE`.
+  - Comprehensive automated test suite (`canonical.test.ts`, `hash.test.ts`, `validation.test.ts`, `signature.test.ts`, `verifier.test.ts`) with 37 tests passing with zero failures.
+  - Interactive end-to-end executable demonstration walkthrough (`src/demo.ts`).
+  - Sprint 1 Implementation Report in `docs/SPRINT_1_IMPLEMENTATION_REPORT.md`.
+
+### Changed
+- **Cryptographic Test Vectors:** Updated `docs/05-cryptography/CRYPTOGRAPHIC_TEST_VECTORS.md` to reflect exact mathematical digests for SHA-256 asset hashing, canonical manifest serialization, and EIP-712 signature generation.
+- **Root Monorepo Tooling:** Configured npm workspaces in `package.json` and updated `scripts/test-all.ps1` and `scripts/lint-all.ps1` to orchestrate `@lucentra/core` tests and typechecks.
+
 ### Added
 - Monorepo foundation files: `.gitignore`, `.editorconfig`, `.env.example`, `LICENSE`.
 - Project initialization and build automation toolchain in `scripts/`:

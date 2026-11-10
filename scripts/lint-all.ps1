@@ -2,7 +2,7 @@
 .SYNOPSIS
     LUCENTRA Code Style and Linter Orchestration Script
 .DESCRIPTION
-    Runs linters, formatting checks, and structural validation across the monorepo.
+    Runs linters, typechecks, and structural validation across the monorepo.
 #>
 
 $ErrorActionPreference = "Continue"
@@ -16,27 +16,38 @@ $npmCmd = if (Get-Command "npm.cmd" -ErrorAction SilentlyContinue) { "npm.cmd" }
 $Failures = 0
 
 # 1. Structural and Link Integrity
-Write-Host "[1/3] Validating Documentation and Structure..." -ForegroundColor Yellow
+Write-Host "[1/4] Validating Documentation and Structure..." -ForegroundColor Yellow
 & powershell -ExecutionPolicy Bypass -File "$PSScriptRoot/validate-structure.ps1"
 if ($LASTEXITCODE -ne 0) { $Failures++ }
 
-# 2. Frontend / Extension Linting
-Write-Host "`n[2/3] Checking Frontend and Extension Code Style..." -ForegroundColor Yellow
+# 2. Core Engine Typecheck
+Write-Host "`n[2/4] Typechecking Cryptographic Core Engine (@lucentra/core)..." -ForegroundColor Yellow
+if (Test-Path "packages/core/package.json") {
+    Push-Location "packages/core"
+    & $npmCmd run typecheck
+    if ($LASTEXITCODE -ne 0) { $Failures++ }
+    Pop-Location
+} else {
+    Write-Host "Skipping core engine typecheck (packages/core not found)." -ForegroundColor DarkGray
+}
+
+# 3. Frontend / Extension Linting
+Write-Host "`n[3/4] Checking Frontend and Extension Code Style..." -ForegroundColor Yellow
 if (Test-Path "apps/dashboard/node_modules") {
     Push-Location "apps/dashboard"
-    and $npmCmd run lint
+    & $npmCmd run lint
     if ($LASTEXITCODE -ne 0) { $Failures++ }
     Pop-Location
 } else {
     Write-Host "Skipping dashboard linting (apps/dashboard/node_modules not installed)." -ForegroundColor DarkGray
 }
 
-# 3. Python Linting
-Write-Host "`n[3/3] Checking Backend Python Code Style..." -ForegroundColor Yellow
+# 4. Python Linting
+Write-Host "`n[4/4] Checking Backend Python Code Style..." -ForegroundColor Yellow
 $flake8Exe = "services/backend/.venv/Scripts/flake8.exe"
 if (Test-Path $flake8Exe) {
     Push-Location "services/backend"
-    and $flake8Exe . --count --select=E9,F63,F7,F82 --show-source --statistics
+    & $flake8Exe . --count --select=E9,F63,F7,F82 --show-source --statistics
     if ($LASTEXITCODE -ne 0) { $Failures++ }
     Pop-Location
 } else {
