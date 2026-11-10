@@ -15,19 +15,14 @@ This document provides a 5-minute quickstart walkthrough for spinning up the loc
 
 ## 2. 5-Minute Verification Walkthrough
 
-### Step 1: Start Background Services
-```bash
-docker compose up -d postgres redis
-```
-
-### Step 2: Run Local Anvil Blockchain Node
+### Step 1: Run Local Anvil Blockchain Node
 ```bash
 cd contracts
 anvil --port 8545 &
 forge script script/DeployPublisherRegistry.s.sol --rpc-url http://127.0.0.1:8545 --broadcast
 ```
 
-### Step 3: Start Backend API
+### Step 2: Start Backend API (Native SQLite)
 ```bash
 cd ../services/backend
 source .venv/bin/activate
@@ -35,7 +30,7 @@ python manage.py migrate
 python manage.py runserver 8000 &
 ```
 
-### Step 4: Load Chrome Extension in Developer Mode
+### Step 3: Load Chrome Extension in Developer Mode
 1. Open Google Chrome and navigate to `chrome://extensions/`.
 2. Enable **Developer mode** (toggle in top right).
 3. Click **Load unpacked** and select `apps/extension/dist`.

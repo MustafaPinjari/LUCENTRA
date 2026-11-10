@@ -57,7 +57,6 @@ C:\Users\mustafa\Desktop\LUCENTRA
 | `.gitignore` | PRESENT | Comprehensive exclusions for Node, Python, Foundry, secrets, `.env` | **VERIFIED** |
 | `.editorconfig` | PRESENT | Indentation, UTF-8 charset, LF line endings configured | **VERIFIED** |
 | `.env.example` | PRESENT | Full environment template for backend, dashboard, extension | **VERIFIED** |
-| `docker-compose.yml` | PRESENT | Local PostgreSQL 16 and Redis 7 definitions with health checks | **VERIFIED** |
 
 ---
 
@@ -157,10 +156,9 @@ Each script was individually executed via Windows PowerShell with source inspect
   [*] Checking for pip... FOUND (pip 26.2.1 from C:\Python314\Lib\site-packages\pip (python 3.14))
   [*] Checking for Git... FOUND (git version 2.55.0.windows.5)
   [*] Checking for Foundry (forge)... OPTIONAL (Not installed)
-  [*] Checking for Docker... OPTIONAL (Not installed)
   [SUCCESS] Core runtime prerequisites (Node, npm, Python, Git) are installed!
   ```
-- **Skipped / Optional Items:** Foundry (`forge`) and Docker are optional for documentation and initial scaffolding. Clear installation commands are printed for developer reference.
+- **Skipped / Optional Items:** Foundry (`forge`) is optional for documentation and initial scaffolding. Clear installation commands are printed for developer reference. Zero Docker dependency required for native development.
 
 ### 5.2 `scripts/validate-structure.ps1`
 - **Command:** `powershell -ExecutionPolicy Bypass -File "scripts/validate-structure.ps1"`
@@ -269,28 +267,29 @@ All scaffolding and initialization scripts under `scripts/` were forensically in
 
 ## 9. Next Steps & Exact Commands to Begin Sprint 1
 
-To begin Sprint 1 feature implementation (`contracts/src/PublisherRegistry.sol`, `packages/core/src/canonical.ts`, and `docker-compose.yml`), execute the following commands in order:
+To begin Sprint 1 feature implementation (`contracts/src/PublisherRegistry.sol`, `packages/core/src/canonical.ts`, and native SQLite backend configuration) in a 100% native environment without Docker, execute the following commands:
 
-### Step 1: Start Local Supporting Infrastructure (Postgres & Redis)
-```powershell
-# Start PostgreSQL 16 and Redis 7 in detached mode
-docker compose up -d
-```
-
-### Step 2: Initialize Smart Contracts Workspace
+### Step 1: Scaffold Smart Contracts Workspace
 ```powershell
 # Scaffolds Foundry workspace in contracts/ without overwriting
 powershell -ExecutionPolicy Bypass -File "scripts/init-contracts.ps1"
 ```
 
-### Step 3: Initialize Core Packages Workspace
+### Step 2: Initialize Core Packages Workspace
 ```powershell
-# Initialize core package for RFC 8785 canonicalization
+# Initialize core package directory for RFC 8785 canonicalization
 New-Item -ItemType Directory -Path "packages/core/src" -Force
+```
+
+### Step 3: Initialize Backend Workspace (Native SQLite & In-Process Celery)
+```powershell
+# Scaffolds Python virtual environment and dependencies in services/backend/
+powershell -ExecutionPolicy Bypass -File "scripts/init-backend.ps1"
 ```
 
 ### Step 4: Run Continuous Validation
 ```powershell
-# Run validation check to ensure workspace health
+# Run validation check to ensure repository health
 powershell -ExecutionPolicy Bypass -File "scripts/validate-structure.ps1"
 ```
+

@@ -75,7 +75,7 @@ flowchart TD
 
 | Environment | Frontend Hosting | Backend Hosting | Database & Cache | Blockchain Network | Target Purpose |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Local Dev** | `localhost:3000` (Next.js) | `localhost:8000` (Django runserver) | Docker (PostgreSQL 16 + Redis 7) | Foundry Anvil (`localhost:8545`) | Unit & integration development |
+| **Local Dev** | `localhost:3000` (Next.js) | `localhost:8000` (Django runserver) | Native SQLite (`db.sqlite3`) + Eager Celery | Foundry Anvil (`localhost:8545`) | Unit & integration development (No Docker required) |
 | **Staging** | Vercel Preview | AWS ECS / Railway Staging | Managed Postgres + Redis | Ethereum Sepolia Testnet | End-to-end integration & QA |
 | **Production** | Vercel Production | AWS ECS Multi-AZ / Fargate | AWS RDS Aurora Postgres + ElastiCache | Ethereum Mainnet / Arbitrum One | Production live traffic |
 

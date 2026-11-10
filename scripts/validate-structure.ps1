@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     LUCENTRA Repository Layout and Integrity Validator
 .DESCRIPTION

@@ -19,7 +19,7 @@ Establish the Foundry smart contract repository, implement `PublisherRegistry.so
 | **LUC-101** | Implement `PublisherRegistry.sol` with EIP-712 verifier checks | Agent 3 (Blockchain) | 5d | PLANNED | `contracts/src/PublisherRegistry.sol` |
 | **LUC-102** | Write Foundry unit & invariant test suite | Agent 3 (Blockchain) | 3d | PLANNED | `contracts/test/PublisherRegistry.t.sol` |
 | **LUC-103** | Implement cross-language RFC 8785 canonicalizer package | Agent 4 (Backend) / Agent 5 | 3d | PLANNED | `packages/core/src/canonical.ts` |
-| **LUC-104** | Draft Docker Compose setup for PostgreSQL and Redis | Agent 10 (Coordinator) | 1d | PLANNED | `docker-compose.yml` |
+| **LUC-104** | Configure zero-dependency native development (SQLite & eager Celery) | Agent 4 (Backend) | 1d | PLANNED | `services/backend/` `.env.example` |
 
 ---
 

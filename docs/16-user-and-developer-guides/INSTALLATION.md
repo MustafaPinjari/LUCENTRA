@@ -17,10 +17,10 @@ This document provides complete installation and environment setup instructions 
 
 - **Operating System:** Linux, macOS, or Windows 11 (WSL2 recommended for Windows).
 - **Node.js:** v20.10.0+ (LTS)
-- **pnpm:** v9.0.0+
+- **npm:** v9.0.0+ (or **pnpm:** v9.0.0+)
 - **Python:** v3.11+
 - **Foundry:** Latest stable build (`foundryup`)
-- **Docker:** Docker Desktop with Compose v2.20+
+- **No Docker Required:** Native development runs directly on local Node and Python runtimes with SQLite.
 
 ---
 
@@ -34,8 +34,8 @@ cd lucentra
 
 ### 3.2 Install Dependencies
 ```bash
-# Install Node workspace dependencies
-pnpm install
+# Run automated setup and environment diagnostics
+powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
 
 # Install Foundry dependencies
 cd contracts
@@ -47,12 +47,15 @@ cd services/backend
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+python manage.py migrate
 cd ../..
 ```
 
-### 3.3 Launch Local Infrastructure
+### 3.3 Launch Services
 ```bash
-docker compose up -d postgres redis
+# Start backend server (uses SQLite and eager Celery by default)
+cd services/backend
+python manage.py runserver 0.0.0.0:8000
 ```
 
 ---

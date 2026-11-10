@@ -2,8 +2,8 @@
 .SYNOPSIS
     LUCENTRA Environment Diagnostics and Tooling Verification Script
 .DESCRIPTION
-    Checks presence and versions of Node.js, npm, Python, pip, Git, Foundry (forge),
-    and Docker required for full-stack LUCENTRA development.
+    Checks presence and versions of Node.js, npm, Python, pip, Git, and Foundry (forge)
+    required for native LUCENTRA development without external container dependencies.
 #>
 
 $ErrorActionPreference = "Continue"
@@ -87,12 +87,6 @@ $forgeFound = Check-Tool -Name "Foundry (forge)" -Command "forge" -CommandArgs @
     -InstallHelp "powershell -c `"irm https://foundry.paradigm.xyz | iex`" then foundryup" `
     -Mandatory $false
 
-# 7. Docker
-$null = Check-Tool -Name "Docker" -Command "docker" -CommandArgs @("--version") `
-    -RequiredVersionDesc "Docker Engine / Desktop for local Postgres and Redis" `
-    -InstallHelp "https://www.docker.com/products/docker-desktop/" `
-    -Mandatory $false
-
 Write-Host ""
 Write-Host "-----------------------------------------------------------------" -ForegroundColor Gray
 
@@ -100,7 +94,7 @@ if ($AllReady) {
     Write-Host "[SUCCESS] Core runtime prerequisites (Node, npm, Python, Git) are installed!" -ForegroundColor Green
     if (-not $forgeFound) {
         Write-Host "[NOTE] Foundry (forge) is recommended for smart contract development in contracts/." -ForegroundColor Yellow
-        Write-Host "       Install via: powershell -c `"irm https://foundry.paradigm.xyz | iex`" && foundryup" -ForegroundColor DarkGray
+        Write-Host "       Install via: powershell -c `"irm https://foundry.paradigm.xyz | iex`" then foundryup" -ForegroundColor DarkGray
     }
 } else {
     Write-Host "[WARNING] Missing required dependencies: $($MissingTools -join ', ')" -ForegroundColor Red

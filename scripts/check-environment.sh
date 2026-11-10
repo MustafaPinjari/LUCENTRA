@@ -54,7 +54,6 @@ check_tool "Python" "python3" "--version" "Python 3.11+" "https://python.org or 
 check_tool "pip" "pip3" "--version" "pip3" "python3 -m ensurepip" "true"
 check_tool "Git" "git" "--version" "Git 2.30+" "https://git-scm.com" "true"
 check_tool "Foundry (forge)" "forge" "--version" "Foundry toolchain" "curl -L https://foundry.paradigm.xyz | bash && foundryup" "false"
-check_tool "Docker" "docker" "--version" "Docker Engine" "https://docs.docker.com/get-docker/" "false"
 
 echo ""
 echo "-----------------------------------------------------------------"
