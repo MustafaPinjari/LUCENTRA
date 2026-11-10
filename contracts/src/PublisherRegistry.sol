@@ -44,6 +44,7 @@ contract PublisherRegistry is IPublisherRegistry, Ownable2Step, ReentrancyGuard,
     }
 
     modifier onlyDomainOwner(string calldata domain) {
+        _validateCanonicalDomain(bytes(domain));
         bytes32 dHash = keccak256(bytes(domain));
         address owner = _domains[dHash].owner;
         if (owner == address(0)) revert DomainNotRegistered();
@@ -78,7 +79,7 @@ contract PublisherRegistry is IPublisherRegistry, Ownable2Step, ReentrancyGuard,
         uint64 deadline,
         bytes calldata publisherSignature
     ) external nonReentrant onlyRegistrar {
-        if (bytes(domain).length == 0) revert EmptyDomainString();
+        _validateCanonicalDomain(bytes(domain));
         if (publisher == address(0) || initialSigningKey == address(0)) revert ZeroAddress();
         if (block.timestamp > deadline) revert SignatureExpired();
 
@@ -114,6 +115,57 @@ contract PublisherRegistry is IPublisherRegistry, Ownable2Step, ReentrancyGuard,
         bytes32 digest = _hashTypedDataV4(structHash);
         if (!SignatureChecker.isValidSignatureNow(publisher, digest, signature)) {
             revert InvalidSignature();
+        }
+    }
+
+    /**
+     * @notice Validates that a domain string complies strictly with canonical lowercase ASCII RFC 1035 format.
+     * @dev Off-chain, IDNA 2008 / UTS #46 converts Unicode to ASCII punycode (e.g. xn--...).
+     * On-chain, this validator prevents raw Unicode, uppercase characters, directory traversal,
+     * leading/trailing dots, double dots, and malformed hyphens.
+     * @param domain Bytes representation of the domain string.
+     */
+    function _validateCanonicalDomain(bytes calldata domain) internal pure {
+        uint256 len = domain.length;
+        if (len == 0) revert EmptyDomainString();
+        if (len > 253) revert InvalidDomainFormat();
+
+        uint256 labelLen = 0;
+        uint256 dotCount = 0;
+
+        for (uint256 i = 0; i < len; i++) {
+            bytes1 c = domain[i];
+
+            if (c == 0x2E) {
+                // '.'
+                // Label cannot be empty (no leading dot, no double dot "..")
+                // Label length cannot exceed 63 characters (RFC 1035)
+                if (labelLen == 0 || labelLen > 63) revert InvalidDomainFormat();
+                // Label cannot end with a hyphen
+                if (domain[i - 1] == 0x2D) revert InvalidDomainFormat();
+                labelLen = 0;
+                dotCount++;
+            } else {
+                // Label cannot start with a hyphen
+                if (labelLen == 0 && c == 0x2D) revert InvalidDomainFormat();
+
+                // Must be lowercase ASCII 'a'-'z' (0x61-0x7A), digits '0'-'9' (0x30-0x39), or '-' (0x2D)
+                bool isLower = (c >= 0x61 && c <= 0x7A);
+                bool isDigit = (c >= 0x30 && c <= 0x39);
+                bool isHyphen = (c == 0x2D);
+
+                if (!isLower && !isDigit && !isHyphen) {
+                    revert InvalidDomainFormat();
+                }
+
+                labelLen++;
+            }
+        }
+
+        // Must contain at least one dot (TLD separator)
+        // Last label cannot be empty, cannot exceed 63 characters, and cannot end with a hyphen
+        if (dotCount == 0 || labelLen == 0 || labelLen > 63 || domain[len - 1] == 0x2D) {
+            revert InvalidDomainFormat();
         }
     }
 
@@ -188,6 +240,7 @@ contract PublisherRegistry is IPublisherRegistry, Ownable2Step, ReentrancyGuard,
      * @param domain Target domain to suspend.
      */
     function suspendPublisher(string calldata domain) external {
+        _validateCanonicalDomain(bytes(domain));
         bytes32 dHash = keccak256(bytes(domain));
         DomainRecord storage rec = _domains[dHash];
 
@@ -207,6 +260,7 @@ contract PublisherRegistry is IPublisherRegistry, Ownable2Step, ReentrancyGuard,
      * @param domain Target domain to reactivate.
      */
     function reactivatePublisher(string calldata domain) external {
+        _validateCanonicalDomain(bytes(domain));
         bytes32 dHash = keccak256(bytes(domain));
         DomainRecord storage rec = _domains[dHash];
 

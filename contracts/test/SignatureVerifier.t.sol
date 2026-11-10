@@ -66,10 +66,12 @@ contract SignatureVerifierTest is Test {
         bytes32 structHash = keccak256(
             abi.encode(
                 keccak256(
-                    "ReleaseManifest(string domain,string version,bytes32 manifestHash,uint64 timestamp,uint64 expiresAt)"
+                    "ReleaseManifest(string domain,string version,uint64 sequence,bytes32 previousManifestHash,bytes32 manifestHash,uint64 timestamp,uint64 expiresAt)"
                 ),
                 keccak256(bytes(manifest.domain)),
                 keccak256(bytes(manifest.version)),
+                manifest.sequence,
+                manifest.previousManifestHash,
                 manifest.manifestHash,
                 manifest.timestamp,
                 manifest.expiresAt
@@ -85,10 +87,10 @@ contract SignatureVerifierTest is Test {
     // =========================================================================
 
     function test_CrossLanguage_TestVector3_Verification() public pure {
-        // Exact vector from packages/core/test/signature.test.ts
+        // Synchronized vector from packages/core/test/signature.test.ts (Sprint 2.1)
         // Private Key: 0x4c0883a69102937d6231471b5dbb6204db7e716b78ac5c7827453b4112f46973
-        // Expected Signer: 0x93309a65fb019f6b9ea203b5f90d47ad9f88c3c6 (lower)
-        // Expected Sig: 0xdebe38b2c5399315ce7083f0e46f43ce6e45dd1351325b11ef1f88e734178a974e0f49fa9a7373d854b93c12f348546278579fa41638720f1553ea0b7a7a495f1c
+        // Derived Address: 0xa0629861EeD36918aeF4750df910253a59b26977
+        // Expected Sig: 0xdc07367809cf09257f102a3272a5434d1263fd459e5225e3d826d58953a065485745bfd7ef47f78b05282d6f6bdf806f3ebfb6751b8d79ebac32b09ee97e19171c
         // Domain: name="LUCENTRA", version="1", chainId=11155111, verifyingContract=0x1111111111111111111111111111111111111111
 
         uint256 tv3PrivKey = 0x4c0883a69102937d6231471b5dbb6204db7e716b78ac5c7827453b4112f46973;
@@ -107,6 +109,8 @@ contract SignatureVerifierTest is Test {
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: "example.com",
             version: "0.1.0",
+            sequence: 1,
+            previousManifestHash: bytes32(0),
             manifestHash: 0xc1e5d6c7fc531240aaa94d85078f8fcef4a7407571bc13cc7586a417411259d4,
             timestamp: 1700000000,
             expiresAt: 1799999999
@@ -114,7 +118,7 @@ contract SignatureVerifierTest is Test {
 
         bytes memory sig = _signManifest(tv3PrivKey, manifest, tv3DomainSeparator);
         bytes memory expectedSig =
-            hex"debe38b2c5399315ce7083f0e46f43ce6e45dd1351325b11ef1f88e734178a974e0f49fa9a7373d854b93c12f348546278579fa41638720f1553ea0b7a7a495f1c";
+            hex"dc07367809cf09257f102a3272a5434d1263fd459e5225e3d826d58953a065485745bfd7ef47f78b05282d6f6bdf806f3ebfb6751b8d79ebac32b09ee97e19171c";
 
         assertEq(sig, expectedSig);
 
@@ -122,10 +126,12 @@ contract SignatureVerifierTest is Test {
         bytes32 structHash = keccak256(
             abi.encode(
                 keccak256(
-                    "ReleaseManifest(string domain,string version,bytes32 manifestHash,uint64 timestamp,uint64 expiresAt)"
+                    "ReleaseManifest(string domain,string version,uint64 sequence,bytes32 previousManifestHash,bytes32 manifestHash,uint64 timestamp,uint64 expiresAt)"
                 ),
                 keccak256(bytes(manifest.domain)),
                 keccak256(bytes(manifest.version)),
+                manifest.sequence,
+                manifest.previousManifestHash,
                 manifest.manifestHash,
                 manifest.timestamp,
                 manifest.expiresAt
@@ -145,6 +151,8 @@ contract SignatureVerifierTest is Test {
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: TEST_DOMAIN,
             version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
             manifestHash: TEST_MANIFEST_HASH,
             timestamp: TEST_TIMESTAMP,
             expiresAt: TEST_EXPIRES_AT
@@ -162,6 +170,8 @@ contract SignatureVerifierTest is Test {
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: TEST_DOMAIN,
             version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
             manifestHash: TEST_MANIFEST_HASH,
             timestamp: TEST_TIMESTAMP,
             expiresAt: TEST_EXPIRES_AT
@@ -181,6 +191,8 @@ contract SignatureVerifierTest is Test {
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: TEST_DOMAIN,
             version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
             manifestHash: TEST_MANIFEST_HASH,
             timestamp: TEST_TIMESTAMP,
             expiresAt: TEST_EXPIRES_AT
@@ -195,10 +207,86 @@ contract SignatureVerifierTest is Test {
         verifier.verifyRelease(manifest, sig, address(registry), TEST_TIMESTAMP + 100);
     }
 
+    function test_RevertIf_ManifestTampered_Sequence() public {
+        ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
+            manifestHash: TEST_MANIFEST_HASH,
+            timestamp: TEST_TIMESTAMP,
+            expiresAt: TEST_EXPIRES_AT
+        });
+
+        bytes memory sig = _signManifest(authorizedKeyPriv, manifest, verifier.DOMAIN_SEPARATOR());
+
+        // Tamper sequence number
+        manifest.sequence = 2;
+
+        vm.expectRevert(ISignatureVerifier.UnauthorizedSigner.selector);
+        verifier.verifyRelease(manifest, sig, address(registry), TEST_TIMESTAMP + 100);
+    }
+
+    function test_RevertIf_ManifestTampered_PreviousManifestHash() public {
+        ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
+            manifestHash: TEST_MANIFEST_HASH,
+            timestamp: TEST_TIMESTAMP,
+            expiresAt: TEST_EXPIRES_AT
+        });
+
+        bytes memory sig = _signManifest(authorizedKeyPriv, manifest, verifier.DOMAIN_SEPARATOR());
+
+        // Tamper previousManifestHash
+        manifest.previousManifestHash = bytes32(uint256(0xdeadbeef));
+
+        vm.expectRevert(ISignatureVerifier.UnauthorizedSigner.selector);
+        verifier.verifyRelease(manifest, sig, address(registry), TEST_TIMESTAMP + 100);
+    }
+
+    function test_RevertIf_InvalidExpirationRange_Equal() public {
+        ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
+            manifestHash: TEST_MANIFEST_HASH,
+            timestamp: TEST_TIMESTAMP,
+            expiresAt: TEST_TIMESTAMP
+        });
+
+        bytes memory sig = _signManifest(authorizedKeyPriv, manifest, verifier.DOMAIN_SEPARATOR());
+
+        vm.expectRevert(ISignatureVerifier.InvalidExpirationRange.selector);
+        verifier.verifyRelease(manifest, sig, address(registry), TEST_TIMESTAMP);
+    }
+
+    function test_RevertIf_InvalidExpirationRange_Past() public {
+        ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
+            manifestHash: TEST_MANIFEST_HASH,
+            timestamp: TEST_TIMESTAMP,
+            expiresAt: TEST_TIMESTAMP - 1
+        });
+
+        bytes memory sig = _signManifest(authorizedKeyPriv, manifest, verifier.DOMAIN_SEPARATOR());
+
+        vm.expectRevert(ISignatureVerifier.InvalidExpirationRange.selector);
+        verifier.verifyRelease(manifest, sig, address(registry), TEST_TIMESTAMP);
+    }
+
     function test_RevertIf_SignatureExpired() public {
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: TEST_DOMAIN,
             version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
             manifestHash: TEST_MANIFEST_HASH,
             timestamp: TEST_TIMESTAMP,
             expiresAt: TEST_EXPIRES_AT
@@ -219,6 +307,8 @@ contract SignatureVerifierTest is Test {
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: TEST_DOMAIN,
             version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
             manifestHash: TEST_MANIFEST_HASH,
             timestamp: TEST_TIMESTAMP,
             expiresAt: TEST_EXPIRES_AT
@@ -245,6 +335,8 @@ contract SignatureVerifierTest is Test {
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: TEST_DOMAIN,
             version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
             manifestHash: TEST_MANIFEST_HASH,
             timestamp: TEST_TIMESTAMP,
             expiresAt: TEST_EXPIRES_AT
@@ -271,6 +363,8 @@ contract SignatureVerifierTest is Test {
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: TEST_DOMAIN,
             version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
             manifestHash: TEST_MANIFEST_HASH,
             timestamp: TEST_TIMESTAMP,
             expiresAt: TEST_EXPIRES_AT
@@ -287,6 +381,8 @@ contract SignatureVerifierTest is Test {
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: TEST_DOMAIN,
             version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
             manifestHash: TEST_MANIFEST_HASH,
             timestamp: TEST_TIMESTAMP,
             expiresAt: TEST_EXPIRES_AT
@@ -306,6 +402,8 @@ contract SignatureVerifierTest is Test {
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: TEST_DOMAIN,
             version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
             manifestHash: TEST_MANIFEST_HASH,
             timestamp: TEST_TIMESTAMP,
             expiresAt: TEST_EXPIRES_AT
@@ -325,6 +423,8 @@ contract SignatureVerifierTest is Test {
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: TEST_DOMAIN,
             version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
             manifestHash: TEST_MANIFEST_HASH,
             timestamp: TEST_TIMESTAMP,
             expiresAt: TEST_EXPIRES_AT
@@ -362,6 +462,8 @@ contract SignatureVerifierTest is Test {
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: TEST_DOMAIN,
             version: "fuzz-v1",
+            sequence: 1,
+            previousManifestHash: bytes32(0),
             manifestHash: manifestHash,
             timestamp: timestamp,
             expiresAt: expiresAt

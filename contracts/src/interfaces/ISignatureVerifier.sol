@@ -9,6 +9,8 @@ interface ISignatureVerifier {
     struct ReleaseManifest {
         string domain;
         string version;
+        uint64 sequence;
+        bytes32 previousManifestHash;
         bytes32 manifestHash;
         uint64 timestamp;
         uint64 expiresAt;
@@ -21,6 +23,7 @@ interface ISignatureVerifier {
     error PublisherSuspended();
     error UnregisteredPublisher();
     error InvalidParameters();
+    error InvalidExpirationRange();
 
     function hashReleaseManifest(ReleaseManifest calldata manifest) external view returns (bytes32);
 

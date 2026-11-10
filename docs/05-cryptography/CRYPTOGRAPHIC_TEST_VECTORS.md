@@ -68,15 +68,17 @@ This document provides official, reproducible cryptographic test vectors for SHA
 - Private Key: `0x4c0883a69102937d6231471b5dbb6204db7e716b78ac5c7827453b4112f46973`
 - Derived Address: `0xa0629861EeD36918aeF4750df910253a59b26977`
 
-### Message Fields
+### Message Fields (Sprint 2.1 Synchronized Format)
 - `domain`: `"example.com"`
 - `version`: `"0.1.0"`
+- `sequence`: `1`
+- `previousManifestHash`: `0x0000000000000000000000000000000000000000000000000000000000000000`
 - `manifestHash`: `0xc1e5d6c7fc531240aaa94d85078f8fcef4a7407571bc13cc7586a417411259d4`
 - `timestamp`: `1700000000`
 - `expiresAt`: `1799999999`
 
 ### Expected Output Signature
-- `signature`: `0xdebe38b2c5399315ce7083f0e46f43ce6e45dd1351325b11ef1f88e734178a974e0f49fa9a7373d854b93c12f348546278579fa41638720f1553ea0b7a7a495f1c`
+- `signature`: `0xdc07367809cf09257f102a3272a5434d1263fd459e5225e3d826d58953a065485745bfd7ef47f78b05282d6f6bdf806f3ebfb6751b8d79ebac32b09ee97e19171c`
 - Recovered Address: `0xa0629861EeD36918aeF4750df910253a59b26977` (Matches Signer Address exactly)
 
 ---

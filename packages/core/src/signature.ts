@@ -47,6 +47,8 @@ export const RELEASE_MANIFEST_EIP712_TYPES = {
   ReleaseManifest: [
     { name: "domain", type: "string" },
     { name: "version", type: "string" },
+    { name: "sequence", type: "uint64" },
+    { name: "previousManifestHash", type: "bytes32" },
     { name: "manifestHash", type: "bytes32" },
     { name: "timestamp", type: "uint64" },
     { name: "expiresAt", type: "uint64" },
@@ -97,6 +99,9 @@ export function buildReleaseManifestMessage(
   return {
     domain: manifest.domain,
     version: manifest.version,
+    sequence: BigInt(manifest.sequence ?? 1),
+    previousManifestHash: (manifest.previousManifestHash ??
+      "0x0000000000000000000000000000000000000000000000000000000000000000") as Hex,
     manifestHash,
     timestamp: BigInt(manifest.createdAt),
     expiresAt: BigInt(manifest.expiresAt),
@@ -150,6 +155,8 @@ export async function signReleaseManifestWithAccount(
 export interface RecoverReleaseSignerParams {
   readonly domain: string;
   readonly version: string;
+  readonly sequence?: bigint | number;
+  readonly previousManifestHash?: Hex;
   readonly manifestHash: Hex;
   readonly timestamp: bigint | number;
   readonly expiresAt: bigint | number;
@@ -170,9 +177,13 @@ export async function recoverReleaseSigner(
       params.verifyingContract ?? DEFAULT_VERIFYING_CONTRACT
     );
 
-    const message = {
+    const message: ReleaseManifestMessage = {
       domain: params.domain,
       version: params.version,
+      sequence: BigInt(params.sequence ?? 1),
+      previousManifestHash:
+        params.previousManifestHash ??
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
       manifestHash: params.manifestHash,
       timestamp: BigInt(params.timestamp),
       expiresAt: BigInt(params.expiresAt),

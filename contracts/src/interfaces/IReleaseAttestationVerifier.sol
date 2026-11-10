@@ -12,6 +12,8 @@ interface IReleaseAttestationVerifier {
         string version;
         uint64 sequence;
         bytes32 previousManifestHash;
+        uint64 timestamp;
+        uint64 expiresAt;
         address signingKey;
         bytes signature;
     }
@@ -38,6 +40,9 @@ interface IReleaseAttestationVerifier {
     error BrokenContinuity();
     error NotDomainOwner();
     error ZeroAddress();
+    error InvalidParameters();
+    error FutureTimestamp();
+    error InvalidExpirationRange();
 
     event ReleaseAttested(
         bytes32 indexed uid, bytes32 indexed manifestHash, string domain, string version, uint64 sequence
@@ -49,10 +54,7 @@ interface IReleaseAttestationVerifier {
         view
         returns (VerificationResult memory);
 
-    function attestRelease(ReleaseAttestationData calldata data, uint64 expirationTime)
-        external
-        payable
-        returns (bytes32 uid);
+    function attestRelease(ReleaseAttestationData calldata data) external payable returns (bytes32 uid);
 
     function revokeRelease(bytes32 attestationUid) external;
 }

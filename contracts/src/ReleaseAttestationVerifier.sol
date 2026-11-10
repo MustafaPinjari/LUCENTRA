@@ -40,6 +40,12 @@ contract ReleaseAttestationVerifier is IReleaseAttestationVerifier, ReentrancyGu
     /// @notice Approved EAS Schema UID for release attestations
     bytes32 public immutable releaseSchemaId;
 
+    /// @notice Tracks the highest attested release sequence per domain
+    mapping(bytes32 => uint64) public latestSequence;
+
+    /// @notice Tracks the latest manifest hash per domain for release sequence continuity
+    mapping(bytes32 => bytes32) public latestManifestHash;
+
     /**
      * @notice Initializes the verifier with core protocol contracts.
      * @param _eas Address of deployed EAS contract.
@@ -90,10 +96,18 @@ contract ReleaseAttestationVerifier is IReleaseAttestationVerifier, ReentrancyGu
             bytes32 manifestHash,
             string memory domain,
             string memory version,
-            uint64 sequence,,
+            uint64 sequence,
+            bytes32 previousManifestHash,
+            uint64 timestamp,
+            uint64 expiresAt,
             address claimedSigningKey,
             bytes memory signature
-        ) = abi.decode(attestation.data, (bytes32, string, string, uint64, bytes32, address, bytes));
+        ) = abi.decode(attestation.data, (bytes32, string, string, uint64, bytes32, uint64, uint64, address, bytes));
+
+        // Evaluate manifest expiration against evaluation time
+        if (expiresAt != 0 && evalTime > expiresAt) {
+            revert AttestationExpired();
+        }
 
         // Publisher suspension check
         if (publisherRegistry.isPublisherSuspended(domain)) {
@@ -109,9 +123,11 @@ contract ReleaseAttestationVerifier is IReleaseAttestationVerifier, ReentrancyGu
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: domain,
             version: version,
+            sequence: sequence,
+            previousManifestHash: previousManifestHash,
             manifestHash: manifestHash,
-            timestamp: attestation.time,
-            expiresAt: attestation.expirationTime
+            timestamp: timestamp,
+            expiresAt: expiresAt
         });
 
         address recoveredSigner = signatureVerifier.recoverSigner(manifest, signature);
@@ -134,26 +150,35 @@ contract ReleaseAttestationVerifier is IReleaseAttestationVerifier, ReentrancyGu
 
     /**
      * @notice Helper to submit an attested release directly to EAS with pre-flight protocol validation.
-     * @dev Validates that the signing key is currently active and signature is valid before minting the attestation.
+     * @dev Validates signing key authorization, temporal range, sequence continuity, and EIP-712 signature.
+     * Preserves publisher-signed timestamp without replacing it with block.timestamp.
      * @param data Release attestation parameters.
-     * @param expirationTime Timestamp when the attestation expires.
      * @return uid The newly created EAS attestation UID.
      */
-    function attestRelease(ReleaseAttestationData calldata data, uint64 expirationTime)
-        external
-        payable
-        nonReentrant
-        returns (bytes32 uid)
-    {
+    function attestRelease(ReleaseAttestationData calldata data) external payable nonReentrant returns (bytes32 uid) {
         if (publisherRegistry.isPublisherSuspended(data.domain)) revert PublisherSuspended();
         if (!publisherRegistry.isKeyAuthorized(data.domain, data.signingKey)) revert UnauthorizedSigningKey();
+
+        // Enforce temporal validity
+        if (data.expiresAt <= data.timestamp) revert InvalidExpirationRange();
+        if (data.expiresAt <= block.timestamp) revert AttestationExpired();
+        if (data.timestamp > block.timestamp + 3600) revert FutureTimestamp();
+
+        // Enforce sequence progression and continuity
+        bytes32 dHash = keccak256(bytes(data.domain));
+        if (data.sequence == 0) revert InvalidParameters();
+        uint64 currentSeq = latestSequence[dHash];
+        if (currentSeq != 0 && data.sequence <= currentSeq) revert SequenceRollback();
+        if (currentSeq != 0 && data.previousManifestHash != latestManifestHash[dHash]) revert BrokenContinuity();
 
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: data.domain,
             version: data.version,
+            sequence: data.sequence,
+            previousManifestHash: data.previousManifestHash,
             manifestHash: data.manifestHash,
-            timestamp: SafeCast.toUint64(block.timestamp),
-            expiresAt: expirationTime
+            timestamp: data.timestamp,
+            expiresAt: data.expiresAt
         });
 
         address recovered = signatureVerifier.recoverSigner(manifest, data.signature);
@@ -165,6 +190,8 @@ contract ReleaseAttestationVerifier is IReleaseAttestationVerifier, ReentrancyGu
             data.version,
             data.sequence,
             data.previousManifestHash,
+            data.timestamp,
+            data.expiresAt,
             data.signingKey,
             data.signature
         );
@@ -173,13 +200,16 @@ contract ReleaseAttestationVerifier is IReleaseAttestationVerifier, ReentrancyGu
             schema: releaseSchemaId,
             data: AttestationRequestData({
                 recipient: publisherRegistry.getDomainOwner(data.domain),
-                expirationTime: expirationTime,
+                expirationTime: data.expiresAt,
                 revocable: true,
                 refUID: bytes32(0),
                 data: encodedData,
                 value: msg.value
             })
         });
+
+        latestSequence[dHash] = data.sequence;
+        latestManifestHash[dHash] = data.manifestHash;
 
         uid = eas.attest{value: msg.value}(req);
         emit ReleaseAttested(uid, data.manifestHash, data.domain, data.version, data.sequence);
@@ -197,8 +227,8 @@ contract ReleaseAttestationVerifier is IReleaseAttestationVerifier, ReentrancyGu
         if (attestation.uid == bytes32(0)) revert AttestationNotFound();
 
         // Decode domain from payload
-        (, string memory domain,,,,,) =
-            abi.decode(attestation.data, (bytes32, string, string, uint64, bytes32, address, bytes));
+        (, string memory domain,,,,,,,) =
+            abi.decode(attestation.data, (bytes32, string, string, uint64, bytes32, uint64, uint64, address, bytes));
 
         address domainOwner = publisherRegistry.getDomainOwner(domain);
         if (msg.sender != domainOwner) revert NotDomainOwner();

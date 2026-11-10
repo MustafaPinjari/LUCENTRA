@@ -54,6 +54,7 @@ const ALLOWED_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   "version",
   "createdAt",
   "expiresAt",
+  "sequence",
   "resources",
   "previousManifestHash",
 ]);
@@ -316,7 +317,23 @@ export function validateReleaseManifest(input: unknown): ReleaseManifest {
     );
   }
 
-  // 6. Optional Previous Manifest Hash
+  // 6. Optional Sequence
+  let sequence: number | undefined;
+  if (rec["sequence"] !== undefined) {
+    if (
+      typeof rec["sequence"] !== "number" ||
+      !Number.isInteger(rec["sequence"]) ||
+      rec["sequence"] < 0
+    ) {
+      throw new LucentraError(
+        "INVALID_MANIFEST_SCHEMA",
+        "Manifest sequence must be a non-negative integer"
+      );
+    }
+    sequence = rec["sequence"];
+  }
+
+  // 7. Optional Previous Manifest Hash
   let previousManifestHash: Hex | undefined;
   if (rec["previousManifestHash"] !== undefined) {
     if (
@@ -374,6 +391,7 @@ export function validateReleaseManifest(input: unknown): ReleaseManifest {
     version: rec["version"].trim(),
     createdAt: rec["createdAt"],
     expiresAt: rec["expiresAt"],
+    ...(sequence !== undefined ? { sequence } : {}),
     ...(previousManifestHash ? { previousManifestHash } : {}),
     resources: validatedResources,
   };

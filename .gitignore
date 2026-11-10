@@ -99,6 +99,8 @@ services/backend/celerybeat-schedule*
 celerybeat-schedule*
 
 # Foundry / Solidity (contracts)
+cache/
+out/
 contracts/cache/
 contracts/out/
 contracts/broadcast/

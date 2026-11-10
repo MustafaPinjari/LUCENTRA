@@ -44,7 +44,7 @@ const SAMPLE_MANIFEST_HASH =
 
 test("EIP-712: Test Vector 3 official vector verification", async () => {
   const expectedSig =
-    "0xdebe38b2c5399315ce7083f0e46f43ce6e45dd1351325b11ef1f88e734178a974e0f49fa9a7373d854b93c12f348546278579fa41638720f1553ea0b7a7a495f1c";
+    "0xdc07367809cf09257f102a3272a5434d1263fd459e5225e3d826d58953a065485745bfd7ef47f78b05282d6f6bdf806f3ebfb6751b8d79ebac32b09ee97e19171c";
 
   const { signature, signer } = await signReleaseManifestWithAccount({
     manifest: SAMPLE_MANIFEST,

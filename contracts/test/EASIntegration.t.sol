@@ -49,9 +49,9 @@ contract EASIntegrationTest is Test {
         vm.startPrank(governance);
         eas = new MockEAS();
 
-        // Register Release Schema ID
+        // Register Release Schema ID (Sprint 2.1: 9 fields including sequence, previousManifestHash, timestamp, expiresAt)
         string memory schemaString =
-            "bytes32 manifestHash,string domain,string version,uint64 sequence,bytes32 previousManifestHash,address signingKey,bytes signature";
+            "bytes32 manifestHash,string domain,string version,uint64 sequence,bytes32 previousManifestHash,uint64 timestamp,uint64 expiresAt,address signingKey,bytes signature";
         releaseSchemaId = keccak256(bytes(schemaString));
 
         registry = new PublisherRegistry(registrar);
@@ -92,6 +92,8 @@ contract EASIntegrationTest is Test {
                 signatureVerifier.RELEASE_MANIFEST_TYPEHASH(),
                 keccak256(bytes(manifest.domain)),
                 keccak256(bytes(manifest.version)),
+                manifest.sequence,
+                manifest.previousManifestHash,
                 manifest.manifestHash,
                 manifest.timestamp,
                 manifest.expiresAt
@@ -112,6 +114,8 @@ contract EASIntegrationTest is Test {
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: TEST_DOMAIN,
             version: TEST_VERSION,
+            sequence: sequence,
+            previousManifestHash: previousHash,
             manifestHash: TEST_MANIFEST_HASH,
             timestamp: time,
             expiresAt: expirationTime
@@ -119,8 +123,17 @@ contract EASIntegrationTest is Test {
 
         bytes memory signature = _signManifest(signingKeyPriv, manifest);
 
-        bytes memory payload =
-            abi.encode(TEST_MANIFEST_HASH, TEST_DOMAIN, TEST_VERSION, sequence, previousHash, signingKey, signature);
+        bytes memory payload = abi.encode(
+            TEST_MANIFEST_HASH,
+            TEST_DOMAIN,
+            TEST_VERSION,
+            sequence,
+            previousHash,
+            time,
+            expirationTime,
+            signingKey,
+            signature
+        );
 
         vm.warp(time);
 
@@ -259,11 +272,14 @@ contract EASIntegrationTest is Test {
     // =========================================================================
 
     function test_AttestRelease_ViaHelper() public {
+        uint64 curTime = uint64(block.timestamp);
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: TEST_DOMAIN,
             version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
             manifestHash: TEST_MANIFEST_HASH,
-            timestamp: uint64(block.timestamp),
+            timestamp: curTime,
             expiresAt: TEST_EXPIRES_AT
         });
 
@@ -276,26 +292,32 @@ contract EASIntegrationTest is Test {
                 version: TEST_VERSION,
                 sequence: 1,
                 previousManifestHash: bytes32(0),
+                timestamp: curTime,
+                expiresAt: TEST_EXPIRES_AT,
                 signingKey: signingKey,
                 signature: signature
             });
 
         vm.prank(publisher);
-        bytes32 uid = releaseVerifier.attestRelease(data, TEST_EXPIRES_AT);
+        bytes32 uid = releaseVerifier.attestRelease(data);
         assertTrue(uid != bytes32(0));
 
-        IReleaseAttestationVerifier.VerificationResult memory res =
-            releaseVerifier.verifyAttestation(uid, uint64(block.timestamp));
+        IReleaseAttestationVerifier.VerificationResult memory res = releaseVerifier.verifyAttestation(uid, curTime);
         assertTrue(res.isValid);
+        assertEq(res.sequence, 1);
+        assertEq(res.manifestHash, TEST_MANIFEST_HASH);
     }
 
     function test_RevokeRelease_ViaHelper_Success() public {
         // Publisher attests release through helper
+        uint64 curTime = uint64(block.timestamp);
         ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
             domain: TEST_DOMAIN,
             version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
             manifestHash: TEST_MANIFEST_HASH,
-            timestamp: uint64(block.timestamp),
+            timestamp: curTime,
             expiresAt: TEST_EXPIRES_AT
         });
         bytes memory signature = _signManifest(signingKeyPriv, manifest);
@@ -307,11 +329,14 @@ contract EASIntegrationTest is Test {
                 version: TEST_VERSION,
                 sequence: 1,
                 previousManifestHash: bytes32(0),
+                timestamp: curTime,
+                expiresAt: TEST_EXPIRES_AT,
                 signingKey: signingKey,
                 signature: signature
             });
 
-        bytes32 uid = releaseVerifier.attestRelease(data, TEST_EXPIRES_AT);
+        vm.prank(publisher);
+        bytes32 uid = releaseVerifier.attestRelease(data);
 
         // Only the genuine domain owner can revoke
         vm.prank(publisher);
@@ -319,7 +344,7 @@ contract EASIntegrationTest is Test {
 
         // Subsequent verification must revert AttestationRevoked
         vm.expectRevert(IReleaseAttestationVerifier.AttestationRevoked.selector);
-        releaseVerifier.verifyAttestation(uid, uint64(block.timestamp));
+        releaseVerifier.verifyAttestation(uid, curTime);
     }
 
     function test_RevertIf_RevokeRelease_UnauthorizedAttacker() public {
@@ -328,5 +353,414 @@ contract EASIntegrationTest is Test {
         vm.prank(attacker);
         vm.expectRevert(IReleaseAttestationVerifier.NotDomainOwner.selector);
         releaseVerifier.revokeRelease(uid);
+    }
+
+    // =========================================================================
+    // 4. SPRINT 2.1 SECURITY REMEDIATION TESTS
+    // =========================================================================
+
+    function test_RevertIf_AttestRelease_SequenceRollback() public {
+        uint64 curTime = uint64(block.timestamp);
+        // Release 1 (seq = 2)
+        ISignatureVerifier.ReleaseManifest memory m1 = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: "2.0.0",
+            sequence: 2,
+            previousManifestHash: bytes32(0),
+            manifestHash: TEST_MANIFEST_HASH,
+            timestamp: curTime,
+            expiresAt: TEST_EXPIRES_AT
+        });
+        bytes memory s1 = _signManifest(signingKeyPriv, m1);
+        IReleaseAttestationVerifier.ReleaseAttestationData memory d1 = IReleaseAttestationVerifier.ReleaseAttestationData({
+            manifestHash: TEST_MANIFEST_HASH,
+            domain: TEST_DOMAIN,
+            version: "2.0.0",
+            sequence: 2,
+            previousManifestHash: bytes32(0),
+            timestamp: curTime,
+            expiresAt: TEST_EXPIRES_AT,
+            signingKey: signingKey,
+            signature: s1
+        });
+        vm.prank(publisher);
+        releaseVerifier.attestRelease(d1);
+
+        // Release 2 attempts sequence rollback (seq = 1)
+        bytes32 newHash = keccak256("manifest2");
+        ISignatureVerifier.ReleaseManifest memory m2 = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: "1.0.0",
+            sequence: 1,
+            previousManifestHash: TEST_MANIFEST_HASH,
+            manifestHash: newHash,
+            timestamp: curTime,
+            expiresAt: TEST_EXPIRES_AT
+        });
+        bytes memory s2 = _signManifest(signingKeyPriv, m2);
+        IReleaseAttestationVerifier.ReleaseAttestationData memory d2 = IReleaseAttestationVerifier.ReleaseAttestationData({
+            manifestHash: newHash,
+            domain: TEST_DOMAIN,
+            version: "1.0.0",
+            sequence: 1,
+            previousManifestHash: TEST_MANIFEST_HASH,
+            timestamp: curTime,
+            expiresAt: TEST_EXPIRES_AT,
+            signingKey: signingKey,
+            signature: s2
+        });
+
+        vm.prank(publisher);
+        vm.expectRevert(IReleaseAttestationVerifier.SequenceRollback.selector);
+        releaseVerifier.attestRelease(d2);
+    }
+
+    function test_RevertIf_AttestRelease_DuplicateSequence() public {
+        uint64 curTime = uint64(block.timestamp);
+        // Release 1 (seq = 1)
+        ISignatureVerifier.ReleaseManifest memory m1 = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: "1.0.0",
+            sequence: 1,
+            previousManifestHash: bytes32(0),
+            manifestHash: TEST_MANIFEST_HASH,
+            timestamp: curTime,
+            expiresAt: TEST_EXPIRES_AT
+        });
+        bytes memory s1 = _signManifest(signingKeyPriv, m1);
+        IReleaseAttestationVerifier.ReleaseAttestationData memory d1 = IReleaseAttestationVerifier.ReleaseAttestationData({
+            manifestHash: TEST_MANIFEST_HASH,
+            domain: TEST_DOMAIN,
+            version: "1.0.0",
+            sequence: 1,
+            previousManifestHash: bytes32(0),
+            timestamp: curTime,
+            expiresAt: TEST_EXPIRES_AT,
+            signingKey: signingKey,
+            signature: s1
+        });
+        vm.prank(publisher);
+        releaseVerifier.attestRelease(d1);
+
+        // Attempt second release with duplicate sequence 1
+        bytes32 newHash = keccak256("manifest2");
+        ISignatureVerifier.ReleaseManifest memory m2 = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: "1.0.1",
+            sequence: 1,
+            previousManifestHash: bytes32(0),
+            manifestHash: newHash,
+            timestamp: curTime,
+            expiresAt: TEST_EXPIRES_AT
+        });
+        bytes memory s2 = _signManifest(signingKeyPriv, m2);
+        IReleaseAttestationVerifier.ReleaseAttestationData memory d2 = IReleaseAttestationVerifier.ReleaseAttestationData({
+            manifestHash: newHash,
+            domain: TEST_DOMAIN,
+            version: "1.0.1",
+            sequence: 1,
+            previousManifestHash: bytes32(0),
+            timestamp: curTime,
+            expiresAt: TEST_EXPIRES_AT,
+            signingKey: signingKey,
+            signature: s2
+        });
+
+        vm.prank(publisher);
+        vm.expectRevert(IReleaseAttestationVerifier.SequenceRollback.selector);
+        releaseVerifier.attestRelease(d2);
+    }
+
+    function test_RevertIf_AttestRelease_BrokenContinuity() public {
+        uint64 curTime = uint64(block.timestamp);
+        // Release 1 (seq = 1, hash = TEST_MANIFEST_HASH)
+        ISignatureVerifier.ReleaseManifest memory m1 = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: "1.0.0",
+            sequence: 1,
+            previousManifestHash: bytes32(0),
+            manifestHash: TEST_MANIFEST_HASH,
+            timestamp: curTime,
+            expiresAt: TEST_EXPIRES_AT
+        });
+        bytes memory s1 = _signManifest(signingKeyPriv, m1);
+        IReleaseAttestationVerifier.ReleaseAttestationData memory d1 = IReleaseAttestationVerifier.ReleaseAttestationData({
+            manifestHash: TEST_MANIFEST_HASH,
+            domain: TEST_DOMAIN,
+            version: "1.0.0",
+            sequence: 1,
+            previousManifestHash: bytes32(0),
+            timestamp: curTime,
+            expiresAt: TEST_EXPIRES_AT,
+            signingKey: signingKey,
+            signature: s1
+        });
+        vm.prank(publisher);
+        releaseVerifier.attestRelease(d1);
+
+        // Release 2 (seq = 2) provides incorrect previousManifestHash
+        bytes32 wrongPreviousHash = keccak256("tampered_previous_hash");
+        bytes32 newHash = keccak256("manifest2");
+        ISignatureVerifier.ReleaseManifest memory m2 = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: "2.0.0",
+            sequence: 2,
+            previousManifestHash: wrongPreviousHash,
+            manifestHash: newHash,
+            timestamp: curTime,
+            expiresAt: TEST_EXPIRES_AT
+        });
+        bytes memory s2 = _signManifest(signingKeyPriv, m2);
+        IReleaseAttestationVerifier.ReleaseAttestationData memory d2 = IReleaseAttestationVerifier.ReleaseAttestationData({
+            manifestHash: newHash,
+            domain: TEST_DOMAIN,
+            version: "2.0.0",
+            sequence: 2,
+            previousManifestHash: wrongPreviousHash,
+            timestamp: curTime,
+            expiresAt: TEST_EXPIRES_AT,
+            signingKey: signingKey,
+            signature: s2
+        });
+
+        vm.prank(publisher);
+        vm.expectRevert(IReleaseAttestationVerifier.BrokenContinuity.selector);
+        releaseVerifier.attestRelease(d2);
+    }
+
+    function test_RevertIf_AttestRelease_FutureTimestamp() public {
+        // Publisher signs with timestamp > block.timestamp + 1 hours
+        uint64 futureTime = uint64(block.timestamp + 3601);
+        ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
+            manifestHash: TEST_MANIFEST_HASH,
+            timestamp: futureTime,
+            expiresAt: TEST_EXPIRES_AT
+        });
+        bytes memory signature = _signManifest(signingKeyPriv, manifest);
+
+        IReleaseAttestationVerifier.ReleaseAttestationData memory data =
+            IReleaseAttestationVerifier.ReleaseAttestationData({
+                manifestHash: TEST_MANIFEST_HASH,
+                domain: TEST_DOMAIN,
+                version: TEST_VERSION,
+                sequence: 1,
+                previousManifestHash: bytes32(0),
+                timestamp: futureTime,
+                expiresAt: TEST_EXPIRES_AT,
+                signingKey: signingKey,
+                signature: signature
+            });
+
+        vm.prank(publisher);
+        vm.expectRevert(IReleaseAttestationVerifier.FutureTimestamp.selector);
+        releaseVerifier.attestRelease(data);
+    }
+
+    function test_RevertIf_AttestRelease_InvalidExpirationRange() public {
+        uint64 curTime = uint64(block.timestamp);
+        // expiresAt == timestamp
+        ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
+            manifestHash: TEST_MANIFEST_HASH,
+            timestamp: curTime,
+            expiresAt: curTime
+        });
+        bytes memory signature = _signManifest(signingKeyPriv, manifest);
+
+        IReleaseAttestationVerifier.ReleaseAttestationData memory data =
+            IReleaseAttestationVerifier.ReleaseAttestationData({
+                manifestHash: TEST_MANIFEST_HASH,
+                domain: TEST_DOMAIN,
+                version: TEST_VERSION,
+                sequence: 1,
+                previousManifestHash: bytes32(0),
+                timestamp: curTime,
+                expiresAt: curTime,
+                signingKey: signingKey,
+                signature: signature
+            });
+
+        vm.prank(publisher);
+        vm.expectRevert(IReleaseAttestationVerifier.InvalidExpirationRange.selector);
+        releaseVerifier.attestRelease(data);
+    }
+
+    function test_RevertIf_AttestRelease_AlreadyExpired() public {
+        // Warp forward so past timestamp does not underflow
+        vm.warp(1000);
+        uint64 pastTime = 800;
+        uint64 expiredTime = 900;
+        ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
+            manifestHash: TEST_MANIFEST_HASH,
+            timestamp: pastTime,
+            expiresAt: expiredTime
+        });
+        bytes memory signature = _signManifest(signingKeyPriv, manifest);
+
+        IReleaseAttestationVerifier.ReleaseAttestationData memory data =
+            IReleaseAttestationVerifier.ReleaseAttestationData({
+                manifestHash: TEST_MANIFEST_HASH,
+                domain: TEST_DOMAIN,
+                version: TEST_VERSION,
+                sequence: 1,
+                previousManifestHash: bytes32(0),
+                timestamp: pastTime,
+                expiresAt: expiredTime,
+                signingKey: signingKey,
+                signature: signature
+            });
+
+        vm.prank(publisher);
+        vm.expectRevert(IReleaseAttestationVerifier.AttestationExpired.selector);
+        releaseVerifier.attestRelease(data);
+    }
+
+    function test_AttestRelease_PreservesPublisherSignedTimestamps() public {
+        // Publisher creates and signs manifest 10 minutes ago
+        uint64 publisherSignedTime = uint64(vm.getBlockTimestamp());
+        uint64 publisherExpiresAt = publisherSignedTime + 30 days;
+
+        ISignatureVerifier.ReleaseManifest memory manifest = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: TEST_VERSION,
+            sequence: 1,
+            previousManifestHash: bytes32(0),
+            manifestHash: TEST_MANIFEST_HASH,
+            timestamp: publisherSignedTime,
+            expiresAt: publisherExpiresAt
+        });
+        bytes memory signature = _signManifest(signingKeyPriv, manifest);
+
+        // Time elapses before on-chain submission (e.g. 15 minutes of queuing/relaying)
+        vm.warp(vm.getBlockTimestamp() + 15 minutes);
+
+        IReleaseAttestationVerifier.ReleaseAttestationData memory data =
+            IReleaseAttestationVerifier.ReleaseAttestationData({
+                manifestHash: TEST_MANIFEST_HASH,
+                domain: TEST_DOMAIN,
+                version: TEST_VERSION,
+                sequence: 1,
+                previousManifestHash: bytes32(0),
+                timestamp: publisherSignedTime,
+                expiresAt: publisherExpiresAt,
+                signingKey: signingKey,
+                signature: signature
+            });
+
+        vm.prank(publisher);
+        bytes32 uid = releaseVerifier.attestRelease(data);
+
+        // Decode stored attestation data directly from EAS
+        (,,,,, uint64 storedTime, uint64 storedExpiry,,) = abi.decode(
+            eas.getAttestation(uid).data, (bytes32, string, string, uint64, bytes32, uint64, uint64, address, bytes)
+        );
+
+        // Stored timestamp matches the original publisher-signed timestamp, NOT block.timestamp
+        assertEq(storedTime, publisherSignedTime);
+        assertEq(storedExpiry, publisherExpiresAt);
+        assertTrue(storedTime != uint64(block.timestamp));
+    }
+
+    function test_AttestRelease_SequenceProgression_MultipleReleases() public {
+        uint64 curTime = uint64(block.timestamp);
+        bytes32 h1 = TEST_MANIFEST_HASH;
+        bytes32 h2 = keccak256("v2_manifest");
+        bytes32 h3 = keccak256("v3_manifest");
+
+        // Release 1 (seq = 1, prev = 0)
+        ISignatureVerifier.ReleaseManifest memory m1 = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: "1.0.0",
+            sequence: 1,
+            previousManifestHash: bytes32(0),
+            manifestHash: h1,
+            timestamp: curTime,
+            expiresAt: TEST_EXPIRES_AT
+        });
+        bytes memory s1 = _signManifest(signingKeyPriv, m1);
+        IReleaseAttestationVerifier.ReleaseAttestationData memory d1 = IReleaseAttestationVerifier.ReleaseAttestationData({
+            manifestHash: h1,
+            domain: TEST_DOMAIN,
+            version: "1.0.0",
+            sequence: 1,
+            previousManifestHash: bytes32(0),
+            timestamp: curTime,
+            expiresAt: TEST_EXPIRES_AT,
+            signingKey: signingKey,
+            signature: s1
+        });
+        vm.prank(publisher);
+        releaseVerifier.attestRelease(d1);
+
+        // Release 2 (seq = 2, prev = h1)
+        ISignatureVerifier.ReleaseManifest memory m2 = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: "2.0.0",
+            sequence: 2,
+            previousManifestHash: h1,
+            manifestHash: h2,
+            timestamp: curTime + 10,
+            expiresAt: TEST_EXPIRES_AT
+        });
+        bytes memory s2 = _signManifest(signingKeyPriv, m2);
+        IReleaseAttestationVerifier.ReleaseAttestationData memory d2 = IReleaseAttestationVerifier.ReleaseAttestationData({
+            manifestHash: h2,
+            domain: TEST_DOMAIN,
+            version: "2.0.0",
+            sequence: 2,
+            previousManifestHash: h1,
+            timestamp: curTime + 10,
+            expiresAt: TEST_EXPIRES_AT,
+            signingKey: signingKey,
+            signature: s2
+        });
+        vm.prank(publisher);
+        releaseVerifier.attestRelease(d2);
+
+        // Release 3 (seq = 3, prev = h2)
+        ISignatureVerifier.ReleaseManifest memory m3 = ISignatureVerifier.ReleaseManifest({
+            domain: TEST_DOMAIN,
+            version: "3.0.0",
+            sequence: 3,
+            previousManifestHash: h2,
+            manifestHash: h3,
+            timestamp: curTime + 20,
+            expiresAt: TEST_EXPIRES_AT
+        });
+        bytes memory s3 = _signManifest(signingKeyPriv, m3);
+        IReleaseAttestationVerifier.ReleaseAttestationData memory d3 = IReleaseAttestationVerifier.ReleaseAttestationData({
+            manifestHash: h3,
+            domain: TEST_DOMAIN,
+            version: "3.0.0",
+            sequence: 3,
+            previousManifestHash: h2,
+            timestamp: curTime + 20,
+            expiresAt: TEST_EXPIRES_AT,
+            signingKey: signingKey,
+            signature: s3
+        });
+        vm.prank(publisher);
+        bytes32 uid3 = releaseVerifier.attestRelease(d3);
+
+        bytes32 dHash = keccak256(bytes(TEST_DOMAIN));
+        assertEq(releaseVerifier.latestSequence(dHash), 3);
+        assertEq(releaseVerifier.latestManifestHash(dHash), h3);
+
+        IReleaseAttestationVerifier.VerificationResult memory res3 =
+            releaseVerifier.verifyAttestation(uid3, curTime + 25);
+        assertTrue(res3.isValid);
+        assertEq(res3.sequence, 3);
+        assertEq(res3.manifestHash, h3);
     }
 }

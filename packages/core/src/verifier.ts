@@ -177,8 +177,22 @@ export async function verifyRelease(
       );
     }
 
-    // Check sequence rollback
+    // Check sequence rollback (createdAt or explicit sequence)
     if (
+      input.previousRelease.sequence !== undefined &&
+      validatedManifest.sequence !== undefined &&
+      validatedManifest.sequence <= input.previousRelease.sequence
+    ) {
+      hasSequenceRollback = true;
+      errors.push({
+        code: "RELEASE_SEQUENCE_ROLLBACK",
+        message: `Release sequence rollback detected: manifest sequence (${validatedManifest.sequence}) is not strictly greater than previous release (${input.previousRelease.sequence})`,
+        details: {
+          manifestSequence: validatedManifest.sequence,
+          previousReleaseSequence: input.previousRelease.sequence,
+        },
+      });
+    } else if (
       input.previousRelease.createdAt !== undefined &&
       validatedManifest.createdAt < input.previousRelease.createdAt
     ) {
@@ -240,6 +254,8 @@ export async function verifyRelease(
     recoveredSigner = await recoverReleaseSigner({
       domain: validatedManifest.domain,
       version: validatedManifest.version,
+      sequence: validatedManifest.sequence,
+      previousManifestHash: validatedManifest.previousManifestHash,
       manifestHash,
       timestamp: BigInt(validatedManifest.createdAt),
       expiresAt: BigInt(validatedManifest.expiresAt),

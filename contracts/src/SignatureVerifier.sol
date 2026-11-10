@@ -18,7 +18,7 @@ contract SignatureVerifier is ISignatureVerifier, EIP712 {
 
     /// @notice Approved EIP-712 typehash for ReleaseManifest structured messages
     bytes32 public constant RELEASE_MANIFEST_TYPEHASH = keccak256(
-        "ReleaseManifest(string domain,string version,bytes32 manifestHash,uint64 timestamp,uint64 expiresAt)"
+        "ReleaseManifest(string domain,string version,uint64 sequence,bytes32 previousManifestHash,bytes32 manifestHash,uint64 timestamp,uint64 expiresAt)"
     );
 
     constructor() EIP712("LUCENTRA", "1") {}
@@ -34,6 +34,8 @@ contract SignatureVerifier is ISignatureVerifier, EIP712 {
                 RELEASE_MANIFEST_TYPEHASH,
                 keccak256(bytes(manifest.domain)),
                 keccak256(bytes(manifest.version)),
+                manifest.sequence,
+                manifest.previousManifestHash,
                 manifest.manifestHash,
                 manifest.timestamp,
                 manifest.expiresAt
@@ -74,6 +76,7 @@ contract SignatureVerifier is ISignatureVerifier, EIP712 {
         uint64 evaluationTime
     ) external view returns (bool isValid, address signer) {
         if (publisherRegistry == address(0)) revert InvalidParameters();
+        if (manifest.expiresAt <= manifest.timestamp) revert InvalidExpirationRange();
 
         uint64 evalTime = evaluationTime == 0 ? SafeCast.toUint64(block.timestamp) : evaluationTime;
         if (evalTime > manifest.expiresAt) {

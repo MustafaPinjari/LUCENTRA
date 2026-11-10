@@ -53,6 +53,7 @@ interface IPublisherRegistry {
     error SignatureExpired();
     error InvalidSignature();
     error InvalidNonce();
+    error InvalidDomainFormat();
 
     // Registration (Dual-Authorization)
     function registerPublisherDomainWithAuth(

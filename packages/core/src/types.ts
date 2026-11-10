@@ -72,6 +72,11 @@ export interface ReleaseManifest {
   readonly expiresAt: number;
 
   /**
+   * Monotonically increasing sequence number for this domain release (1, 2, 3...).
+   */
+  readonly sequence?: number;
+
+  /**
    * Optional SHA-256 hash of the immediately preceding release manifest for release sequence continuity.
    */
   readonly previousManifestHash?: Hex;
@@ -99,6 +104,8 @@ export interface LucentraEip712Domain {
 export interface ReleaseManifestMessage {
   readonly domain: string;
   readonly version: string;
+  readonly sequence: bigint;
+  readonly previousManifestHash: Hex;
   readonly manifestHash: Hex;
   readonly timestamp: bigint;
   readonly expiresAt: bigint;
@@ -237,6 +244,7 @@ export interface VerifyReleaseInput {
     readonly version: string;
     readonly manifestHash: Hex;
     readonly createdAt?: number;
+    readonly sequence?: number;
   };
 }
 

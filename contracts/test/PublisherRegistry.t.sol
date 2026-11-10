@@ -396,16 +396,132 @@ contract PublisherRegistryTest is Test {
     }
 
     // =========================================================================
-    // 5. FUZZ TESTING
+    // 5. CANONICAL DOMAIN FORMAT VALIDATION (RFC 1035 / UTS #46)
     // =========================================================================
 
-    function testFuzz_RegisterDomain(string calldata domain, uint256 randomPublisherKey, uint256 randomSigningKey)
-        public
-    {
-        vm.assume(bytes(domain).length > 0 && bytes(domain).length < 100);
+    function test_RevertIf_Domain_Uppercase() public {
+        uint64 deadline = uint64(block.timestamp + 1 hours);
+        string memory badDomain = "EXAMPLE.COM";
+        bytes memory sig = _signRegistration(publisherKey, badDomain, publisher, signingKey1, 0, deadline);
+
+        vm.prank(registrar);
+        vm.expectRevert(IPublisherRegistry.InvalidDomainFormat.selector);
+        registry.registerPublisherDomainWithAuth(badDomain, publisher, signingKey1, deadline, sig);
+    }
+
+    function test_RevertIf_Domain_MixedCase() public {
+        uint64 deadline = uint64(block.timestamp + 1 hours);
+        string memory badDomain = "app.Uniswap.org";
+        bytes memory sig = _signRegistration(publisherKey, badDomain, publisher, signingKey1, 0, deadline);
+
+        vm.prank(registrar);
+        vm.expectRevert(IPublisherRegistry.InvalidDomainFormat.selector);
+        registry.registerPublisherDomainWithAuth(badDomain, publisher, signingKey1, deadline, sig);
+    }
+
+    function test_RevertIf_Domain_RawUnicode() public {
+        uint64 deadline = uint64(block.timestamp + 1 hours);
+        // German umlaut 'ü' is UTF-8 multi-byte (0xC3 0xBC), not ASCII
+        string memory badDomain = unicode"münchen.de";
+        bytes memory sig = _signRegistration(publisherKey, badDomain, publisher, signingKey1, 0, deadline);
+
+        vm.prank(registrar);
+        vm.expectRevert(IPublisherRegistry.InvalidDomainFormat.selector);
+        registry.registerPublisherDomainWithAuth(badDomain, publisher, signingKey1, deadline, sig);
+    }
+
+    function test_RevertIf_Domain_LeadingDot() public {
+        uint64 deadline = uint64(block.timestamp + 1 hours);
+        string memory badDomain = ".example.com";
+        bytes memory sig = _signRegistration(publisherKey, badDomain, publisher, signingKey1, 0, deadline);
+
+        vm.prank(registrar);
+        vm.expectRevert(IPublisherRegistry.InvalidDomainFormat.selector);
+        registry.registerPublisherDomainWithAuth(badDomain, publisher, signingKey1, deadline, sig);
+    }
+
+    function test_RevertIf_Domain_TrailingDot() public {
+        uint64 deadline = uint64(block.timestamp + 1 hours);
+        string memory badDomain = "example.com.";
+        bytes memory sig = _signRegistration(publisherKey, badDomain, publisher, signingKey1, 0, deadline);
+
+        vm.prank(registrar);
+        vm.expectRevert(IPublisherRegistry.InvalidDomainFormat.selector);
+        registry.registerPublisherDomainWithAuth(badDomain, publisher, signingKey1, deadline, sig);
+    }
+
+    function test_RevertIf_Domain_ConsecutiveDots() public {
+        uint64 deadline = uint64(block.timestamp + 1 hours);
+        string memory badDomain = "app..uniswap.org";
+        bytes memory sig = _signRegistration(publisherKey, badDomain, publisher, signingKey1, 0, deadline);
+
+        vm.prank(registrar);
+        vm.expectRevert(IPublisherRegistry.InvalidDomainFormat.selector);
+        registry.registerPublisherDomainWithAuth(badDomain, publisher, signingKey1, deadline, sig);
+    }
+
+    function test_RevertIf_Domain_LeadingHyphenInLabel() public {
+        uint64 deadline = uint64(block.timestamp + 1 hours);
+        string memory badDomain = "-example.com";
+        bytes memory sig = _signRegistration(publisherKey, badDomain, publisher, signingKey1, 0, deadline);
+
+        vm.prank(registrar);
+        vm.expectRevert(IPublisherRegistry.InvalidDomainFormat.selector);
+        registry.registerPublisherDomainWithAuth(badDomain, publisher, signingKey1, deadline, sig);
+    }
+
+    function test_RevertIf_Domain_TrailingHyphenInLabel() public {
+        uint64 deadline = uint64(block.timestamp + 1 hours);
+        string memory badDomain = "example-.com";
+        bytes memory sig = _signRegistration(publisherKey, badDomain, publisher, signingKey1, 0, deadline);
+
+        vm.prank(registrar);
+        vm.expectRevert(IPublisherRegistry.InvalidDomainFormat.selector);
+        registry.registerPublisherDomainWithAuth(badDomain, publisher, signingKey1, deadline, sig);
+    }
+
+    function test_RevertIf_Domain_Empty() public {
+        uint64 deadline = uint64(block.timestamp + 1 hours);
+        string memory badDomain = "";
+        bytes memory sig = _signRegistration(publisherKey, badDomain, publisher, signingKey1, 0, deadline);
+
+        vm.prank(registrar);
+        vm.expectRevert(IPublisherRegistry.EmptyDomainString.selector);
+        registry.registerPublisherDomainWithAuth(badDomain, publisher, signingKey1, deadline, sig);
+    }
+
+    function test_RevertIf_Domain_NoDot() public {
+        uint64 deadline = uint64(block.timestamp + 1 hours);
+        string memory badDomain = "localhost";
+        bytes memory sig = _signRegistration(publisherKey, badDomain, publisher, signingKey1, 0, deadline);
+
+        vm.prank(registrar);
+        vm.expectRevert(IPublisherRegistry.InvalidDomainFormat.selector);
+        registry.registerPublisherDomainWithAuth(badDomain, publisher, signingKey1, deadline, sig);
+    }
+
+    function test_ValidDomain_Punycode() public {
+        uint64 deadline = uint64(block.timestamp + 1 hours);
+        // Valid punycode domain for "münchen.de"
+        string memory punyDomain = "xn--mnchen-3ya.de";
+        bytes memory sig = _signRegistration(publisherKey, punyDomain, publisher, signingKey1, 0, deadline);
+
+        vm.prank(registrar);
+        registry.registerPublisherDomainWithAuth(punyDomain, publisher, signingKey1, deadline, sig);
+
+        assertEq(registry.getDomainOwner(punyDomain), publisher);
+        assertTrue(registry.isKeyAuthorized(punyDomain, signingKey1));
+    }
+
+    // =========================================================================
+    // 6. FUZZ TESTING
+    // =========================================================================
+
+    function testFuzz_RegisterDomain(uint8 domainSeed, uint256 randomPublisherKey, uint256 randomSigningKey) public {
         vm.assume(randomPublisherKey > 0 && randomPublisherKey < type(uint128).max);
         vm.assume(randomSigningKey > 0 && randomSigningKey < type(uint128).max);
 
+        string memory domain = string.concat("sub-", vm.toString(uint256(domainSeed)), ".example.com");
         address fuzzPublisher = vm.addr(randomPublisherKey);
         address fuzzKey = vm.addr(randomSigningKey);
         uint64 deadline = uint64(block.timestamp + 1000);
