@@ -153,3 +153,4 @@ Sprint 1 is formally **COMPLETE** and verified.
 - Implement `SignatureVerifier.sol` adhering to the identical EIP-712 typehash verified in `@lucentra/core`.
 - Implement EAS attestation schemas and revocation logic.
 - Execute Foundry unit and integration tests.
+

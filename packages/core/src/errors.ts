@@ -39,3 +39,4 @@ export class LucentraError extends Error {
 export function isLucentraError(error: unknown): error is LucentraError {
   return error instanceof LucentraError;
 }
+

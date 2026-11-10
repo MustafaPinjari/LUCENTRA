@@ -14,6 +14,29 @@ import {
   hashResourceBytes,
 } from "../src/hash.js";
 
+test("hashResourceBytes: Official FIPS 180-4 standard test vectors", () => {
+  // Vector 1: empty string
+  const emptyDigest = hashResourceBytes("");
+  assert.equal(emptyDigest, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+
+  // Vector 2: "abc"
+  const abcDigest = hashResourceBytes("abc");
+  assert.equal(abcDigest, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+
+  // Vector 3: 448-bit message "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
+  const longMsg = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
+  const longDigest = hashResourceBytes(longMsg);
+  assert.equal(longDigest, "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1");
+});
+
+test("hashResourceBytes: Handles large 2 MiB binary input correctly", () => {
+  const largeBuffer = new Uint8Array(2 * 1024 * 1024);
+  largeBuffer.fill(0xaa);
+  const digest = hashResourceBytes(largeBuffer);
+  assert.equal(digest.length, 64);
+  assert.ok(/^[a-f0-9]{64}$/.test(digest));
+});
+
 test("hashResourceBytes: Computes correct SHA-256 for string", () => {
   const content = 'console.log("Hello, LUCENTRA!");\n';
   const digest = hashResourceBytes(content);

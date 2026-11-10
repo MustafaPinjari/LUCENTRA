@@ -54,9 +54,15 @@ This document provides the formal JSON Schema (Draft 2020-12) for the `LUCENTRA-
       "minimum": 0,
       "description": "Unix timestamp in seconds after which this manifest is expired"
     },
+    "previousManifestHash": {
+      "type": "string",
+      "pattern": "^0x[a-f0-9]{64}$",
+      "description": "Optional SHA-256 hash of immediately preceding release manifest"
+    },
     "resources": {
       "type": "array",
       "minItems": 1,
+      "maxItems": 100,
       "items": {
         "type": "object",
         "required": ["path", "size", "sha256", "type"],

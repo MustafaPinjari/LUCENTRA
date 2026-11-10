@@ -213,6 +213,163 @@ test("verifyRelease: Revoked release triggers REVOKED_RELEASE", async () => {
   assert.ok(result.errors.some((e) => e.code === "RELEASE_REVOKED"));
 });
 
+test("verifyRelease: Missing observed resources prevents false verification (returns INDETERMINATE)", async () => {
+  const fixture = await setupReleaseFixture();
+
+  // Call verifyRelease without observed resources
+  const result = await verifyRelease({
+    manifest: fixture.manifest,
+    signature: fixture.signature,
+    expectedPublisher: fixture.account.address,
+    observedResources: [], // No resources observed
+    evaluationTime: fixture.now + 100,
+  });
+
+  assert.equal(result.state, "INDETERMINATE");
+  assert.equal(result.isValid, false);
+  assert.ok(result.errors.some((e) => e.code === "MISSING_RESOURCE_DETECTED"));
+});
+
+test("verifyRelease: Release sequence rollback detection", async () => {
+  const fixture = await setupReleaseFixture();
+
+  // Evaluate a release where manifest createdAt (1700000000) is older than previous release (1700050000)
+  const result = await verifyRelease({
+    manifest: fixture.manifest,
+    signature: fixture.signature,
+    expectedPublisher: fixture.account.address,
+    observedResources: [{ path: fixture.scriptPath, bytes: fixture.scriptContent }],
+    evaluationTime: fixture.now + 100,
+    previousRelease: {
+      version: "2.0.0",
+      manifestHash: "0x1111111111111111111111111111111111111111111111111111111111111111",
+      createdAt: fixture.now + 50000, // Newer than fixture.manifest.createdAt
+    },
+  });
+
+  assert.equal(result.state, "UNATTESTED_RELEASE");
+  assert.equal(result.isValid, false);
+  assert.ok(result.errors.some((e) => e.code === "RELEASE_SEQUENCE_ROLLBACK"));
+});
+
+test("verifyRelease: Broken previousManifestHash continuity detection", async () => {
+  const fixture = await setupReleaseFixture();
+
+  // Create manifest with declared previousManifestHash
+  const manifestWithPrev: ReleaseManifest = {
+    ...fixture.manifest,
+    previousManifestHash: "0x2222222222222222222222222222222222222222222222222222222222222222",
+  };
+  const canonical = canonicalizeManifest(manifestWithPrev);
+  const hash = hashManifest(canonical);
+  const { signature } = await signReleaseManifestWithAccount({
+    manifest: manifestWithPrev,
+    manifestHash: hash,
+    privateKey: fixture.privateKey,
+  });
+
+  // Evaluate against different previousRelease manifestHash
+  const result = await verifyRelease({
+    manifest: manifestWithPrev,
+    signature,
+    expectedPublisher: fixture.account.address,
+    observedResources: [{ path: fixture.scriptPath, bytes: fixture.scriptContent }],
+    evaluationTime: fixture.now + 100,
+    previousRelease: {
+      version: "0.9.0",
+      manifestHash: "0x9999999999999999999999999999999999999999999999999999999999999999", // Mismatch
+      createdAt: fixture.now - 1000,
+    },
+  });
+
+  assert.equal(result.state, "UNATTESTED_RELEASE");
+  assert.equal(result.isValid, false);
+  assert.ok(result.errors.some((e) => e.code === "INVALID_PREVIOUS_MANIFEST_HASH"));
+});
+
+test("verifyRelease: Manifest tampering detection (altered version after signature)", async () => {
+  const fixture = await setupReleaseFixture();
+
+  // Tamper with manifest version after signature was made
+  const tamperedManifest = {
+    ...fixture.manifest,
+    version: "1.0.1-tampered",
+  };
+
+  const result = await verifyRelease({
+    manifest: tamperedManifest,
+    signature: fixture.signature, // Signature signed original version
+    expectedPublisher: fixture.account.address,
+    observedResources: [{ path: fixture.scriptPath, bytes: fixture.scriptContent }],
+    evaluationTime: fixture.now + 100,
+  });
+
+  // Signer recovered from tampered typed data will not match publisher
+  assert.notEqual(result.state, "VERIFIED_RELEASE_MATCH");
+  assert.equal(result.isValid, false);
+});
+
+test("verifyRelease: Cross-chain replay rejection (chainId mismatch)", async () => {
+  const fixture = await setupReleaseFixture();
+
+  // Verify signature intended for Sepolia against Mainnet (chainId 1)
+  const result = await verifyRelease({
+    manifest: fixture.manifest,
+    signature: fixture.signature,
+    expectedPublisher: fixture.account.address,
+    observedResources: [{ path: fixture.scriptPath, bytes: fixture.scriptContent }],
+    chainId: 1, // Mainnet
+    evaluationTime: fixture.now + 100,
+  });
+
+  assert.notEqual(result.state, "VERIFIED_RELEASE_MATCH");
+  assert.equal(result.isValid, false);
+  assert.equal(result.isSignerAuthorized, false);
+});
+
+test("verifyRelease: Cross-contract replay rejection (verifyingContract mismatch)", async () => {
+  const fixture = await setupReleaseFixture();
+
+  // Verify signature against a different contract deployment address
+  const result = await verifyRelease({
+    manifest: fixture.manifest,
+    signature: fixture.signature,
+    expectedPublisher: fixture.account.address,
+    observedResources: [{ path: fixture.scriptPath, bytes: fixture.scriptContent }],
+    verifyingContract: "0x2222222222222222222222222222222222222222",
+    evaluationTime: fixture.now + 100,
+  });
+
+  assert.notEqual(result.state, "VERIFIED_RELEASE_MATCH");
+  assert.equal(result.isValid, false);
+  assert.equal(result.isSignerAuthorized, false);
+});
+
+test("verifyRelease: Unauthorized signing key rejection", async () => {
+  const fixture = await setupReleaseFixture();
+  const unapprovedKey = generatePrivateKey();
+
+  // Sign with an unapproved private key
+  const { signature: unauthorizedSig } = await signReleaseManifestWithAccount({
+    manifest: fixture.manifest,
+    manifestHash: fixture.manifestHash,
+    privateKey: unapprovedKey,
+  });
+
+  const result = await verifyRelease({
+    manifest: fixture.manifest,
+    signature: unauthorizedSig,
+    expectedPublisher: fixture.account.address, // Expected publisher is fixture account
+    observedResources: [{ path: fixture.scriptPath, bytes: fixture.scriptContent }],
+    evaluationTime: fixture.now + 100,
+  });
+
+  assert.equal(result.state, "UNREGISTERED_PUBLISHER");
+  assert.equal(result.isValid, false);
+  assert.equal(result.isSignerAuthorized, false);
+  assert.ok(result.errors.some((e) => e.code === "SIGNER_NOT_AUTHORIZED"));
+});
+
 test("verifyRelease: Supports authorized signing key delegation", async () => {
   const primaryPublisherKey = generatePrivateKey();
   const primaryPublisher = privateKeyToAccount(primaryPublisherKey);
@@ -264,3 +421,4 @@ test("verifyRelease: Supports authorized signing key delegation", async () => {
   assert.equal(result.isSignerAuthorized, true);
   assert.equal(result.recoveredSigner.toLowerCase(), delegate.address.toLowerCase());
 });
+

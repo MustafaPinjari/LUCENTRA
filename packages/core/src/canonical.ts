@@ -9,19 +9,32 @@ import canonicalizeModule from "canonicalize";
 import { LucentraError } from "./errors.js";
 import type { ReleaseManifest } from "./types.js";
 
-// Safe cross-environment CJS/ESM function resolver
+// Safe cross-environment CJS/ESM function resolver for Anders Rundgren's canonicalize library
 const libraryCanonicalize: ((input: unknown) => string | undefined) | undefined =
   typeof canonicalizeModule === "function"
     ? (canonicalizeModule as (input: unknown) => string | undefined)
     : typeof (canonicalizeModule as { default?: unknown })?.default === "function"
-      ? ((canonicalizeModule as { default: (input: unknown) => string | undefined }).default)
+      ? (canonicalizeModule as { default: (input: unknown) => string | undefined }).default
       : undefined;
 
 /**
- * Pure TypeScript RFC 8785 canonicalization implementation.
- * Used alongside the vetted `canonicalize` package to guarantee cross-environment determinism.
+ * Checks whether a string is well-formed UTF-16 (contains no unpaired/lone surrogates).
+ * Compatible across all ES versions and browser extension runtimes.
  */
-function serializeJcs(value: unknown): string {
+export function isWellFormedUtf16(str: string): boolean {
+  if (typeof (str as { isWellFormed?: () => boolean }).isWellFormed === "function") {
+    return (str as unknown as { isWellFormed: () => boolean }).isWellFormed();
+  }
+  // Detects high surrogates without low surrogates, or low surrogates without high surrogates
+  return !/([\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF])/.test(str);
+}
+
+/**
+ * Pure TypeScript RFC 8785 canonicalization implementation.
+ * Validates IEEE 754 number formatting, UTF-16 lexicographic key sorting,
+ * and strictly prohibits lone surrogates.
+ */
+function serializeJcs(value: unknown, isRoot = false): string {
   if (value === null) {
     return "null";
   }
@@ -39,7 +52,7 @@ function serializeJcs(value: unknown): string {
         `RFC 8785 prohibits non-finite numbers: ${value}`
       );
     }
-    // Handle -0 -> 0 per ES6
+    // Handle -0 -> 0 per ES6 / RFC 8785 Section 3.2.2.3
     if (Object.is(value, -0)) {
       return "0";
     }
@@ -47,7 +60,15 @@ function serializeJcs(value: unknown): string {
   }
 
   if (type === "string") {
-    return JSON.stringify(value);
+    const str = value as string;
+    // RFC 8785 Section 3.2.2.2 strictly prohibits ill-formed UTF-16 (lone surrogates)
+    if (!isWellFormedUtf16(str)) {
+      throw new LucentraError(
+        "CANONICALIZATION_FAILED",
+        "RFC 8785 prohibits lone surrogates in UTF-16 strings"
+      );
+    }
+    return JSON.stringify(str);
   }
 
   if (Array.isArray(value)) {
@@ -57,7 +78,7 @@ function serializeJcs(value: unknown): string {
       if (item === undefined || typeof item === "symbol" || typeof item === "function") {
         serializedElements.push("null");
       } else {
-        serializedElements.push(serializeJcs(item));
+        serializedElements.push(serializeJcs(item, false));
       }
     }
     return `[${serializedElements.join(",")}]`;
@@ -70,12 +91,25 @@ function serializeJcs(value: unknown): string {
     const serializedPairs: string[] = [];
 
     for (const key of keys) {
+      // Key must also be well-formed UTF-16
+      if (!isWellFormedUtf16(key)) {
+        throw new LucentraError(
+          "CANONICALIZATION_FAILED",
+          "RFC 8785 prohibits lone surrogates in object keys"
+        );
+      }
+
       const val = obj[key];
-      // Skip undefined, functions, symbols, and explicitly omitted "signature" property
-      if (val === undefined || typeof val === "function" || typeof val === "symbol" || key === "signature") {
+      // Skip undefined, functions, symbols, and explicitly omitted root-level "signature" property
+      if (
+        val === undefined ||
+        typeof val === "function" ||
+        typeof val === "symbol" ||
+        (isRoot && key === "signature")
+      ) {
         continue;
       }
-      serializedPairs.push(`${JSON.stringify(key)}:${serializeJcs(val)}`);
+      serializedPairs.push(`${JSON.stringify(key)}:${serializeJcs(val, false)}`);
     }
 
     return `{${serializedPairs.join(",")}}`;
@@ -88,7 +122,7 @@ function serializeJcs(value: unknown): string {
 }
 
 /**
- * Strips any signature or undefined properties and canonicalizes an object according to RFC 8785.
+ * Strips any root-level signature or undefined properties and canonicalizes an object according to RFC 8785.
  *
  * @param manifest The manifest or data object to canonicalize.
  * @returns Deterministic, whitespace-free canonical UTF-8 JSON string.
@@ -101,20 +135,18 @@ export function canonicalizeManifest(manifest: ReleaseManifest | object): string
     );
   }
 
-  // First pass using standard canonicalize library
   try {
-    // Clone and strip any 'signature' key to ensure signatures are never inside signed payload
+    // Clone and strip root 'signature' key to ensure signatures are never inside signed payload
     const copy = { ...(manifest as Record<string, unknown>) };
     delete copy["signature"];
 
-    // Use pure JCS serializer
-    const result = serializeJcs(copy);
+    // Use pure JCS serializer with isRoot = true
+    const result = serializeJcs(copy, true);
 
-    // Cross-verify with canonicalize library for invariant defense
+    // Cross-verify with Anders Rundgren's reference canonicalize library for invariant defense
     if (libraryCanonicalize) {
       const libraryResult = libraryCanonicalize(copy);
       if (libraryResult && libraryResult !== result) {
-        // If any divergence occurs, prioritize strict RFC 8785 serializer
         return result;
       }
     }

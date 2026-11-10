@@ -5,12 +5,14 @@
  */
 
 import { LucentraError } from "./errors.js";
-import type { ReleaseManifest, ReleaseResource, ResourceType } from "./types.js";
+import type { Hex, ReleaseManifest, ReleaseResource, ResourceType } from "./types.js";
 
 /**
- * Maximum permitted number of resources in a single release manifest to prevent DoS.
+ * Maximum permitted number of resources in a single release manifest.
+ * Aligned with the approved protocol specification (100 artifacts max)
+ * to respect browser extension Web Worker latency and memory constraints.
  */
-export const MAX_MANIFEST_RESOURCE_COUNT = 1000;
+export const MAX_MANIFEST_RESOURCE_COUNT = 100;
 
 /**
  * Maximum permitted raw JSON byte size for a manifest document (5 MiB).
@@ -43,8 +45,32 @@ const VALID_RESOURCE_TYPES: ReadonlySet<string> = new Set<ResourceType>([
 ]);
 
 /**
+ * Allowed top-level keys in ReleaseManifest (enforcing "additionalProperties": false).
+ */
+const ALLOWED_MANIFEST_KEYS: ReadonlySet<string> = new Set([
+  "schemaVersion",
+  "domain",
+  "version",
+  "createdAt",
+  "expiresAt",
+  "resources",
+  "previousManifestHash",
+]);
+
+/**
+ * Allowed keys in ReleaseResource (enforcing "additionalProperties": false).
+ */
+const ALLOWED_RESOURCE_KEYS: ReadonlySet<string> = new Set([
+  "path",
+  "size",
+  "sha256",
+  "type",
+]);
+
+/**
  * Converts a raw domain string into canonical lowercase ASCII format.
  * Strips protocol schemes (http/https), userinfo, port numbers, and trailing dots.
+ * Strictly rejects numeric TLDs (e.g. IP addresses) and domains exceeding 253 characters.
  */
 export function normalizeDomain(rawDomain: string): string {
   if (typeof rawDomain !== "string") {
@@ -77,10 +103,21 @@ export function normalizeDomain(rawDomain: string): string {
     cleaned = cleaned.slice(0, -1);
   }
 
-  if (!cleaned || !DOMAIN_REGEX.test(cleaned)) {
+  // Enforce RFC 1035 max FQDN length (253 chars)
+  if (!cleaned || cleaned.length > 253 || !DOMAIN_REGEX.test(cleaned)) {
     throw new LucentraError(
       "INVALID_DOMAIN_FORMAT",
       `Domain "${rawDomain}" is not a valid canonical ASCII domain format`
+    );
+  }
+
+  // Disallow purely numeric TLDs (e.g. "127.0.0.1" IPv4 addresses)
+  const labels = cleaned.split(".");
+  const tld = labels[labels.length - 1];
+  if (labels.length < 2 || !tld || /^[0-9]+$/.test(tld)) {
+    throw new LucentraError(
+      "INVALID_DOMAIN_FORMAT",
+      `Domain "${rawDomain}" has an invalid or numeric TLD (IP addresses are not domains)`
     );
   }
 
@@ -90,12 +127,21 @@ export function normalizeDomain(rawDomain: string): string {
 /**
  * Validates root-relative path format for JavaScript assets.
  * Must start with '/', and cannot contain directory traversal tokens (../, .\).
+ * Disallows protocol-relative URLs ('//'), query parameters, URL fragments, and control characters.
  */
 export function validateResourcePath(path: string): boolean {
   if (typeof path !== "string" || !path.startsWith("/")) {
     return false;
   }
-  // Disallow directory traversal sequences and backslashes
+  // Disallow protocol-relative URLs (e.g. "//cdn.evil.com/malware.js")
+  if (path.startsWith("//")) {
+    return false;
+  }
+  // Disallow query parameters or URL fragments
+  if (path.includes("?") || path.includes("#")) {
+    return false;
+  }
+  // Disallow directory traversal sequences, backslashes, and control characters
   if (
     path.includes("/../") ||
     path.endsWith("/..") ||
@@ -103,7 +149,9 @@ export function validateResourcePath(path: string): boolean {
     path.includes("/./") ||
     path.endsWith("/.") ||
     path.includes("\\") ||
-    path.includes("\0")
+    path.includes("\0") ||
+    // eslint-disable-next-line no-control-regex
+    /[\x00-\x1F\x7F]/.test(path)
   ) {
     return false;
   }
@@ -123,11 +171,21 @@ export function validateResource(res: unknown, index: number): ReleaseResource {
 
   const rec = res as Record<string, unknown>;
 
+  // Enforce "additionalProperties": false
+  for (const key of Object.keys(rec)) {
+    if (!ALLOWED_RESOURCE_KEYS.has(key)) {
+      throw new LucentraError(
+        "INVALID_MANIFEST_SCHEMA",
+        `Disallowed property in resource at index ${index}: "${key}". Additional properties are not permitted.`
+      );
+    }
+  }
+
   // 1. Path
   if (typeof rec["path"] !== "string" || !validateResourcePath(rec["path"])) {
     throw new LucentraError(
       "INVALID_RESOURCE_PATH",
-      `Resource at index ${index} has invalid path: "${String(rec["path"])}". Must start with '/' and avoid directory traversal.`
+      `Resource at index ${index} has invalid path: "${String(rec["path"])}". Must start with '/' and avoid traversal, queries, fragments, or protocol-relative schemes.`
     );
   }
 
@@ -185,7 +243,26 @@ export function validateReleaseManifest(input: unknown): ReleaseManifest {
     );
   }
 
+  // Check raw size bound (5 MiB)
+  const serialized = JSON.stringify(input);
+  if (Buffer.byteLength(serialized, "utf8") > MAX_MANIFEST_BYTE_SIZE) {
+    throw new LucentraError(
+      "MANIFEST_SIZE_EXCEEDED",
+      `Manifest JSON size exceeds maximum allowed bound of ${MAX_MANIFEST_BYTE_SIZE} bytes`
+    );
+  }
+
   const rec = input as Record<string, unknown>;
+
+  // Enforce "additionalProperties": false on manifest root
+  for (const key of Object.keys(rec)) {
+    if (!ALLOWED_MANIFEST_KEYS.has(key)) {
+      throw new LucentraError(
+        "INVALID_MANIFEST_SCHEMA",
+        `Disallowed property in manifest: "${key}". Additional properties are not permitted.`
+      );
+    }
+  }
 
   // 1. Schema Version
   if (rec["schemaVersion"] !== APPROVED_SCHEMA_VERSION) {
@@ -237,7 +314,22 @@ export function validateReleaseManifest(input: unknown): ReleaseManifest {
     );
   }
 
-  // 6. Resources collection
+  // 6. Optional Previous Manifest Hash
+  let previousManifestHash: Hex | undefined;
+  if (rec["previousManifestHash"] !== undefined) {
+    if (
+      typeof rec["previousManifestHash"] !== "string" ||
+      !/^0x[a-f0-9]{64}$/i.test(rec["previousManifestHash"])
+    ) {
+      throw new LucentraError(
+        "INVALID_HASH_FORMAT",
+        `Manifest previousManifestHash must be a 32-byte 0x-prefixed hex string`
+      );
+    }
+    previousManifestHash = rec["previousManifestHash"].toLowerCase() as Hex;
+  }
+
+  // 7. Resources collection
   if (!Array.isArray(rec["resources"])) {
     throw new LucentraError(
       "INVALID_MANIFEST_SCHEMA",
@@ -280,6 +372,7 @@ export function validateReleaseManifest(input: unknown): ReleaseManifest {
     version: rec["version"].trim(),
     createdAt: rec["createdAt"],
     expiresAt: rec["expiresAt"],
+    ...(previousManifestHash ? { previousManifestHash } : {}),
     resources: validatedResources,
   };
 }

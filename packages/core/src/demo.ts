@@ -173,6 +173,20 @@ async function runDemo(): Promise<void> {
 
   console.log(`    Verification State:  ${resultE.state}`);
 
+  // 11. Test Scenario F: Missing Evidence Defense (0 observed resources)
+  console.log("\n[11] SCENARIO F: Missing Evidence Invariant (No runtime scripts observed)...");
+  const resultF = await verifyRelease({
+    manifest,
+    signature,
+    expectedPublisher: publisher.address,
+    observedResources: [], // No observed resources passed
+    evaluationTime: now,
+  });
+
+  console.log(`    Verification State:  ${resultF.state} (Prevents ungrounded match)`);
+  console.log(`    Is Valid:            ${resultF.isValid ? "YES" : "NO (SAFE)"}`);
+  console.log(`    Errors Detected:     ${resultF.errors.map((e) => `[${e.code}] ${e.message}`).join(", ")}`);
+
   console.log("\n" + "=".repeat(78));
   console.log("   ALL PROTOCOL ENGINE DEMONSTRATION CHECKS COMPLETED SUCCESSFULLY!");
   console.log("=".repeat(78));
@@ -182,3 +196,4 @@ runDemo().catch((err) => {
   console.error("Demo failed:", err);
   process.exit(1);
 });
+

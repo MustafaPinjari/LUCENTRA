@@ -88,3 +88,4 @@ export function hashAndFormatResource(
   const hex = hashResourceBytes(input);
   return formatResourceHash(hex);
 }
+

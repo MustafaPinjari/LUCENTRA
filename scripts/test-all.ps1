@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     LUCENTRA Full Test Suite Orchestrator
 .DESCRIPTION

@@ -72,6 +72,11 @@ export interface ReleaseManifest {
   readonly expiresAt: number;
 
   /**
+   * Optional SHA-256 hash of the immediately preceding release manifest for release sequence continuity.
+   */
+  readonly previousManifestHash?: Hex;
+
+  /**
    * Lexicographically ordered or unordered collection of release assets.
    * Will be deterministically sorted during RFC 8785 canonicalization.
    */
@@ -141,6 +146,9 @@ export type VerificationErrorCode =
   | "SIGNER_NOT_AUTHORIZED"
   | "RELEASE_EXPIRED"
   | "RELEASE_REVOKED"
+  | "RELEASE_SEQUENCE_ROLLBACK"
+  | "INVALID_PREVIOUS_MANIFEST_HASH"
+  | "REPLAY_ATTEMPT_DETECTED"
   | "CANONICALIZATION_FAILED"
   | "RPC_EVALUATION_ERROR";
 
@@ -215,11 +223,17 @@ export interface VerifyReleaseInput {
   readonly isRevoked?: boolean;
 
   /**
+   * Optional EAS on-chain attestation UID.
+   */
+  readonly attestationUid?: Hex;
+
+  /**
    * Optional previous release information for sequence and replay validation.
    */
   readonly previousRelease?: {
     readonly version: string;
     readonly manifestHash: Hex;
+    readonly createdAt?: number;
   };
 }
 
@@ -301,3 +315,4 @@ export interface VerifyReleaseResult {
    */
   readonly securityDisclosure: string;
 }
+

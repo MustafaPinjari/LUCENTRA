@@ -2,6 +2,7 @@
  * @file verifier.ts
  * @package @lucentra/core
  * @description Comprehensive release verification pipeline evaluating the 6 formal protocol states.
+ * Guarantees that a release is NEVER verified when required evidence is missing.
  */
 
 import { getAddress, isAddressEqual } from "viem";
@@ -27,6 +28,8 @@ import type {
 import { validateReleaseManifest } from "./validation.js";
 
 export const ZERO_ADDRESS: Address = "0x0000000000000000000000000000000000000000";
+export const ZERO_BYTES32: Hex =
+  "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 export const HONEST_VERIFICATION_SECURITY_DISCLOSURE =
   "Verification reflects cryptographic cross-referencing between out-of-band retrieved resource hashes and publisher-attested manifests. The Chrome Extension operates within the browser extension sandbox and does not verify exact in-memory JIT bytes executed inside the V8 engine." as const;
@@ -58,7 +61,7 @@ export async function verifyRelease(
   const resourceDetails: ResourceVerificationDetail[] = [];
 
   let canonicalJson = "";
-  let manifestHash: Hex = "0x0000000000000000000000000000000000000000000000000000000000000000";
+  let manifestHash: Hex = ZERO_BYTES32;
   let validatedManifest: ReleaseManifest | null = null;
   let recoveredSigner: Address = ZERO_ADDRESS;
   let isSignatureValid = false;
@@ -153,7 +156,54 @@ export async function verifyRelease(
     };
   }
 
-  // Check 5: Temporal Expiration against evaluationTime
+  // Check 5: Release Sequence & Replay Protection against previousRelease
+  let hasSequenceRollback = false;
+  let hasBrokenContinuity = false;
+
+  if (input.previousRelease) {
+    // Check replay of identical release
+    if (manifestHash.toLowerCase() === input.previousRelease.manifestHash.toLowerCase()) {
+      warnings.push(
+        `Identical release re-evaluated: manifestHash matches previous release (${manifestHash})`
+      );
+    }
+
+    // Check sequence rollback
+    if (
+      input.previousRelease.createdAt !== undefined &&
+      validatedManifest.createdAt < input.previousRelease.createdAt
+    ) {
+      hasSequenceRollback = true;
+      errors.push({
+        code: "RELEASE_SEQUENCE_ROLLBACK",
+        message: `Release sequence rollback detected: manifest createdAt (${validatedManifest.createdAt}) is older than previous release (${input.previousRelease.createdAt})`,
+        details: {
+          manifestCreatedAt: validatedManifest.createdAt,
+          previousReleaseCreatedAt: input.previousRelease.createdAt,
+        },
+      });
+    }
+
+    // Check previous manifest hash continuity
+    if (validatedManifest.previousManifestHash !== undefined) {
+      if (
+        validatedManifest.previousManifestHash.toLowerCase() !==
+        input.previousRelease.manifestHash.toLowerCase()
+      ) {
+        hasBrokenContinuity = true;
+        errors.push({
+          code: "INVALID_PREVIOUS_MANIFEST_HASH",
+          message: `Release continuity broken: manifest previousManifestHash (${validatedManifest.previousManifestHash}) does not match previous release hash (${input.previousRelease.manifestHash})`,
+          details: {
+            declaredPreviousHash: validatedManifest.previousManifestHash,
+            expectedPreviousHash: input.previousRelease.manifestHash,
+          },
+        });
+      }
+    }
+  }
+
+  // Check 6: Temporal Expiration against evaluationTime
   if (validatedManifest.expiresAt > 0 && evaluationTime > validatedManifest.expiresAt) {
     isExpired = true;
     errors.push({
@@ -166,7 +216,17 @@ export async function verifyRelease(
     });
   }
 
-  // Check 6: EIP-712 Signature Recovery
+  // Check 7: EAS Attestation UID validation (if supplied)
+  if (input.attestationUid !== undefined) {
+    if (input.attestationUid.toLowerCase() === ZERO_BYTES32) {
+      errors.push({
+        code: "INVALID_HASH_FORMAT",
+        message: "EAS Attestation UID is zero: attestation does not exist on-chain",
+      });
+    }
+  }
+
+  // Check 8: EIP-712 Signature Recovery
   try {
     recoveredSigner = await recoverReleaseSigner({
       domain: validatedManifest.domain,
@@ -187,7 +247,7 @@ export async function verifyRelease(
     });
   }
 
-  // Check 7: Signer Authorization
+  // Check 9: Signer Authorization
   if (isSignatureValid) {
     const isPrimaryPublisher = isAddressEqual(
       recoveredSigner,
@@ -215,9 +275,10 @@ export async function verifyRelease(
     }
   }
 
-  // Check 8: Resource Matching and Integrity Evaluation
+  // Check 10: Resource Matching and Integrity Evaluation
   let hasTamperedResource = false;
   let hasUnexpectedResource = false;
+  let matchCount = 0;
 
   const manifestResourceMap = new Map<string, ReleaseResource>();
   for (const res of validatedManifest.resources) {
@@ -265,6 +326,7 @@ export async function verifyRelease(
       });
     } else {
       if (observed.hash.toLowerCase() === declared.sha256.toLowerCase()) {
+        matchCount++;
         resourceDetails.push({
           path,
           expectedHash: declared.sha256,
@@ -320,10 +382,24 @@ export async function verifyRelease(
     state = "UNVERIFIED_RESOURCE_DETECTED";
   } else if (isRevoked) {
     state = "REVOKED_RELEASE";
+  } else if (hasSequenceRollback || hasBrokenContinuity) {
+    state = "UNATTESTED_RELEASE";
   } else if (!isSignerAuthorized) {
     state = "UNREGISTERED_PUBLISHER";
   } else if (!isSignatureValid || isExpired) {
     state = "UNATTESTED_RELEASE";
+  } else if (
+    !input.observedResources ||
+    input.observedResources.length === 0 ||
+    matchCount === 0
+  ) {
+    // CRITICAL SECURITY INVARIANT:
+    // Never report a fully verified release when required evidence is missing!
+    state = "INDETERMINATE";
+    errors.push({
+      code: "MISSING_RESOURCE_DETECTED",
+      message: "No runtime resources were observed to verify against declared manifest assets",
+    });
   } else {
     state = "VERIFIED_RELEASE_MATCH";
   }

@@ -70,6 +70,44 @@ test("RFC 8785: Rejection of non-finite numbers (NaN, Infinity)", () => {
   );
 });
 
+test("RFC 8785: Rejection of lone surrogates (ill-formed UTF-16)", () => {
+  assert.throws(
+    () => canonicalizeManifest({ badString: "\uD800" }),
+    (err: unknown) => err instanceof LucentraError && err.code === "CANONICALIZATION_FAILED"
+  );
+
+  assert.throws(
+    () => canonicalizeManifest({ badString: "\uDFFF" }),
+    (err: unknown) => err instanceof LucentraError && err.code === "CANONICALIZATION_FAILED"
+  );
+});
+
+test("RFC 8785: Root-level signature exclusion vs nested signature preservation", () => {
+  const payload = {
+    domain: "example.com",
+    signature: "0xrootSignature",
+    metadata: {
+      signature: "0xnestedSignatureShouldBePreserved",
+    },
+  };
+  const result = canonicalizeManifest(payload);
+  assert.equal(
+    result,
+    '{"domain":"example.com","metadata":{"signature":"0xnestedSignatureShouldBePreserved"}}'
+  );
+});
+
+test("RFC 8785: Standard escape sequences and whitespace elimination", () => {
+  const escapes = {
+    text: "Line1\nLine2\tTabbed\r\nCRLF\"Quoted\"\\Backslash\\",
+  };
+  const result = canonicalizeManifest(escapes);
+  assert.equal(
+    result,
+    '{"text":"Line1\\nLine2\\tTabbed\\r\\nCRLF\\"Quoted\\"\\\\Backslash\\\\"}'
+  );
+});
+
 test("RFC 8785: Unicode string handling and whitespace elimination", () => {
   const unicodeObj = {
     greeting: "Hello, 世界 🚀",
@@ -92,3 +130,4 @@ test("RFC 8785: Deterministic repeated serialization", () => {
   const res2 = canonicalizeManifest(complex);
   assert.equal(res1, res2);
 });
+

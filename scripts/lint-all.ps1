@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     LUCENTRA Code Style and Linter Orchestration Script
 .DESCRIPTION
