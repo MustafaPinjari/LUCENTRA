@@ -15,9 +15,10 @@ import type { Hex, ReleaseManifest, ReleaseResource, ResourceType } from "./type
 export const MAX_MANIFEST_RESOURCE_COUNT = 100;
 
 /**
- * Maximum permitted raw JSON byte size for a manifest document (5 MiB).
+ * Maximum permitted raw JSON byte size for a manifest document (256 KiB = 262,144 bytes).
+ * Calculated strictly as UTF-8 byte length (not JavaScript string character length).
  */
-export const MAX_MANIFEST_BYTE_SIZE = 5 * 1024 * 1024;
+export const MAX_MANIFEST_BYTE_SIZE = 256 * 1024;
 
 /**
  * Approved protocol schema identifier.
@@ -243,12 +244,13 @@ export function validateReleaseManifest(input: unknown): ReleaseManifest {
     );
   }
 
-  // Check raw size bound (5 MiB)
-  const serialized = JSON.stringify(input);
-  if (Buffer.byteLength(serialized, "utf8") > MAX_MANIFEST_BYTE_SIZE) {
+  // Check raw size bound (256 KiB = 262,144 bytes) strictly using UTF-8 byte length
+  const serialized = typeof input === "string" ? input : JSON.stringify(input);
+  const byteLength = Buffer.byteLength(serialized, "utf8");
+  if (byteLength > MAX_MANIFEST_BYTE_SIZE) {
     throw new LucentraError(
       "MANIFEST_SIZE_EXCEEDED",
-      `Manifest JSON size exceeds maximum allowed bound of ${MAX_MANIFEST_BYTE_SIZE} bytes`
+      `Manifest size (${byteLength} bytes) exceeds maximum allowed bound of ${MAX_MANIFEST_BYTE_SIZE} bytes (256 KiB)`
     );
   }
 

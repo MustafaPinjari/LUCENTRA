@@ -149,6 +149,7 @@ export type VerificationErrorCode =
   | "RELEASE_SEQUENCE_ROLLBACK"
   | "INVALID_PREVIOUS_MANIFEST_HASH"
   | "REPLAY_ATTEMPT_DETECTED"
+  | "RESOURCE_RETRIEVAL_FAILED"
   | "CANONICALIZATION_FAILED"
   | "RPC_EVALUATION_ERROR";
 
@@ -159,7 +160,7 @@ export interface ResourceVerificationDetail {
   readonly path: string;
   readonly expectedHash: string;
   readonly observedHash: string | null;
-  readonly status: "MATCH" | "MISMATCH" | "MISSING" | "UNEXPECTED";
+  readonly status: "MATCH" | "MISMATCH" | "MISSING" | "UNEXPECTED" | "FAILED";
   readonly size: number;
 }
 
@@ -170,6 +171,8 @@ export interface ObservedResource {
   readonly path: string;
   readonly bytes?: Uint8Array | ArrayBuffer | string;
   readonly hash?: string;
+  readonly retrievalFailed?: boolean;
+  readonly retrievalError?: string;
 }
 
 /**

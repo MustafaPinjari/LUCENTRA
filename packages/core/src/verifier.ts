@@ -2,12 +2,14 @@
  * @file verifier.ts
  * @package @lucentra/core
  * @description Comprehensive release verification pipeline evaluating the 6 formal protocol states.
- * Guarantees that a release is NEVER verified when required evidence is missing.
+ * Enforces strict complete-verification invariants: missing or failed observations yield INDETERMINATE;
+ * mismatches yield UNVERIFIED_RESOURCE_DETECTED; and VERIFIED_RELEASE_MATCH is permitted only
+ * when 100% of declared manifest resources are observed, retrieved, and matched.
  */
 
 import { getAddress, isAddressEqual } from "viem";
 import { canonicalizeManifest } from "./canonical.js";
-import { LucentraError, isLucentraError } from "./errors.js";
+import { isLucentraError } from "./errors.js";
 import { formatResourceHash, hashAndFormatResource, hashManifest } from "./hash.js";
 import {
   DEFAULT_CHAIN_ID,
@@ -34,16 +36,23 @@ export const ZERO_BYTES32: Hex =
 export const HONEST_VERIFICATION_SECURITY_DISCLOSURE =
   "Verification reflects cryptographic cross-referencing between out-of-band retrieved resource hashes and publisher-attested manifests. The Chrome Extension operates within the browser extension sandbox and does not verify exact in-memory JIT bytes executed inside the V8 engine." as const;
 
+interface ObservedEntry {
+  readonly hash: string | null;
+  readonly size: number;
+  readonly retrievalFailed: boolean;
+  readonly retrievalError?: string;
+}
+
 /**
  * Executes full end-to-end cryptographic and structural verification of a release.
  *
  * Evaluates the 6 formal protocol states:
- * - VERIFIED_RELEASE_MATCH
- * - UNVERIFIED_RESOURCE_DETECTED
- * - UNREGISTERED_PUBLISHER
- * - UNATTESTED_RELEASE
- * - REVOKED_RELEASE
- * - INDETERMINATE
+ * - VERIFIED_RELEASE_MATCH: All declared resources observed, retrieved, and matched byte-for-byte.
+ * - UNVERIFIED_RESOURCE_DETECTED: Any integrity mismatch or undeclared external script detected in DOM.
+ * - UNREGISTERED_PUBLISHER: Domain not registered or signing key unauthorized.
+ * - UNATTESTED_RELEASE: Release unsigned, expired, rolled back, or broken continuity.
+ * - REVOKED_RELEASE: Attestation or key flagged as revoked.
+ * - INDETERMINATE: Missing observations, failed retrieval, or malformed inputs.
  */
 export async function verifyRelease(
   input: VerifyReleaseInput
@@ -278,45 +287,116 @@ export async function verifyRelease(
   // Check 10: Resource Matching and Integrity Evaluation
   let hasTamperedResource = false;
   let hasUnexpectedResource = false;
+  let hasMissingResource = false;
+  let hasFailedRetrieval = false;
   let matchCount = 0;
 
   const manifestResourceMap = new Map<string, ReleaseResource>();
   for (const res of validatedManifest.resources) {
     manifestResourceMap.set(res.path, res);
   }
+  const declaredCount = manifestResourceMap.size;
 
-  const observedResourceMap = new Map<string, { hash: string; size: number }>();
+  const observedResourceMap = new Map<string, ObservedEntry>();
+
   if (input.observedResources && input.observedResources.length > 0) {
     for (const obs of input.observedResources) {
+      if (!obs || typeof obs !== "object" || typeof obs.path !== "string") {
+        errors.push({
+          code: "INVALID_RESOURCE_PATH",
+          message: "Observed resource entry must be an object with a string path",
+        });
+        hasFailedRetrieval = true;
+        continue;
+      }
+
+      // Check if retrieval explicitly failed
+      if (obs.retrievalFailed) {
+        hasFailedRetrieval = true;
+        observedResourceMap.set(obs.path, {
+          hash: null,
+          size: 0,
+          retrievalFailed: true,
+          retrievalError: obs.retrievalError ?? "Out-of-band resource retrieval failed",
+        });
+        errors.push({
+          code: "RESOURCE_RETRIEVAL_FAILED",
+          message: `Resource retrieval failed for "${obs.path}": ${obs.retrievalError ?? "Network/HTTP error"}`,
+          details: { path: obs.path, error: obs.retrievalError },
+        });
+        continue;
+      }
+
+      // Compute or format hash
       let computedHash: string;
       let size = 0;
 
-      if (obs.bytes !== undefined) {
-        computedHash = hashAndFormatResource(obs.bytes);
-        if (typeof obs.bytes === "string") {
-          size = Buffer.byteLength(obs.bytes, "utf8");
-        } else if (obs.bytes instanceof Uint8Array) {
-          size = obs.bytes.byteLength;
-        } else if (obs.bytes instanceof ArrayBuffer) {
-          size = obs.bytes.byteLength;
+      try {
+        if (obs.bytes !== undefined) {
+          computedHash = hashAndFormatResource(obs.bytes);
+          if (typeof obs.bytes === "string") {
+            size = Buffer.byteLength(obs.bytes, "utf8");
+          } else if (obs.bytes instanceof Uint8Array) {
+            size = obs.bytes.byteLength;
+          } else if (obs.bytes instanceof ArrayBuffer) {
+            size = obs.bytes.byteLength;
+          }
+        } else if (obs.hash !== undefined) {
+          computedHash = formatResourceHash(obs.hash);
+        } else {
+          // Missing bytes and missing hash -> retrieval failure
+          hasFailedRetrieval = true;
+          observedResourceMap.set(obs.path, {
+            hash: null,
+            size: 0,
+            retrievalFailed: true,
+            retrievalError: "Observed resource contains neither bytes nor digest",
+          });
+          errors.push({
+            code: "RESOURCE_RETRIEVAL_FAILED",
+            message: `Observed resource at "${obs.path}" contains neither bytes nor hash`,
+            details: { path: obs.path },
+          });
+          continue;
         }
-      } else if (obs.hash !== undefined) {
-        computedHash = formatResourceHash(obs.hash);
-      } else {
-        throw new LucentraError(
-          "INVALID_HASH_FORMAT",
-          `Observed resource at "${obs.path}" must supply either bytes or hash`
-        );
+      } catch (err: unknown) {
+        errors.push({
+          code: "INVALID_HASH_FORMAT",
+          message: `Failed to format/compute hash for "${obs.path}": ${err instanceof Error ? err.message : String(err)}`,
+        });
+        hasFailedRetrieval = true;
+        continue;
       }
 
-      observedResourceMap.set(obs.path, { hash: computedHash, size });
+      // Check for duplicate observations for the same path
+      const existing = observedResourceMap.get(obs.path);
+      if (existing) {
+        if (existing.hash && existing.hash.toLowerCase() !== computedHash.toLowerCase()) {
+          // Conflicting digests observed for same path! Critical tampering/split-view indicator!
+          hasTamperedResource = true;
+          errors.push({
+            code: "RESOURCE_HASH_MISMATCH",
+            message: `Conflicting digest observations detected for "${obs.path}": observed ${existing.hash} and ${computedHash}`,
+            details: { path: obs.path, firstHash: existing.hash, secondHash: computedHash },
+          });
+        } else {
+          warnings.push(`Duplicate observation for "${obs.path}" with identical digest`);
+        }
+      } else {
+        observedResourceMap.set(obs.path, {
+          hash: computedHash,
+          size,
+          retrievalFailed: false,
+        });
+      }
     }
   }
 
-  // A. Check each declared resource against observed
+  // A. Check each declared resource in manifest against observations
   for (const [path, declared] of manifestResourceMap.entries()) {
     const observed = observedResourceMap.get(path);
     if (!observed) {
+      hasMissingResource = true;
       resourceDetails.push({
         path,
         expectedHash: declared.sha256,
@@ -324,7 +404,21 @@ export async function verifyRelease(
         status: "MISSING",
         size: declared.size,
       });
-    } else {
+      errors.push({
+        code: "MISSING_RESOURCE_DETECTED",
+        message: `Declared manifest resource was not observed in runtime environment: "${path}"`,
+        details: { path, expectedHash: declared.sha256 },
+      });
+    } else if (observed.retrievalFailed) {
+      hasFailedRetrieval = true;
+      resourceDetails.push({
+        path,
+        expectedHash: declared.sha256,
+        observedHash: null,
+        status: "FAILED",
+        size: declared.size,
+      });
+    } else if (observed.hash) {
       if (observed.hash.toLowerCase() === declared.sha256.toLowerCase()) {
         matchCount++;
         resourceDetails.push({
@@ -369,7 +463,7 @@ export async function verifyRelease(
       });
       errors.push({
         code: "UNEXPECTED_RESOURCE_DETECTED",
-        message: `Undeclared external script detected in DOM: "${path}" (${observed.hash})`,
+        message: `Undeclared external script detected in DOM: "${path}" (${observed.hash ?? "failed"})`,
         details: { path, observedHash: observed.hash },
       });
     }
@@ -379,6 +473,7 @@ export async function verifyRelease(
   let state: VerificationState;
 
   if (hasTamperedResource || hasUnexpectedResource) {
+    // Rule 6 & 7: Any observed integrity mismatch or unexpected resource MUST produce UNVERIFIED_RESOURCE_DETECTED
     state = "UNVERIFIED_RESOURCE_DETECTED";
   } else if (isRevoked) {
     state = "REVOKED_RELEASE";
@@ -389,18 +484,16 @@ export async function verifyRelease(
   } else if (!isSignatureValid || isExpired) {
     state = "UNATTESTED_RELEASE";
   } else if (
+    hasMissingResource ||
+    hasFailedRetrieval ||
     !input.observedResources ||
     input.observedResources.length === 0 ||
-    matchCount === 0
+    matchCount < declaredCount
   ) {
-    // CRITICAL SECURITY INVARIANT:
-    // Never report a fully verified release when required evidence is missing!
+    // Rule 4 & 5: Missing observations or failed retrieval MUST produce INDETERMINATE!
     state = "INDETERMINATE";
-    errors.push({
-      code: "MISSING_RESOURCE_DETECTED",
-      message: "No runtime resources were observed to verify against declared manifest assets",
-    });
   } else {
+    // Rule 8: VERIFIED_RELEASE_MATCH is permitted ONLY when all required checks have completed successfully
     state = "VERIFIED_RELEASE_MATCH";
   }
 

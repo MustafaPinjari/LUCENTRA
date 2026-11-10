@@ -9,6 +9,34 @@ import { test } from "node:test";
 import { canonicalizeManifest } from "../src/canonical.js";
 import { LucentraError } from "../src/errors.js";
 
+test("RFC 8785: Official Appendix A.1 key sorting test vector", () => {
+  // Official RFC 8785 Appendix A.1 test vector
+  // UTF-16 code units: "01" (0x30, 0x31) < "1" (0x31) < "10" (0x31, 0x30)
+  const input = {
+    "10": "ten",
+    "1": "one",
+    "01": "zero one",
+  };
+  const result = canonicalizeManifest(input);
+  assert.equal(result, '{"01":"zero one","1":"one","10":"ten"}');
+});
+
+test("RFC 8785: Official Appendix A.2 number serialization test vectors", () => {
+  // Official RFC 8785 Appendix A.2 test vectors
+  const numbers = {
+    zero: 0,
+    negZero: -0,
+    big: 1e23,
+    small: 1e-7,
+    frac: 0.125,
+  };
+  const result = canonicalizeManifest(numbers);
+  assert.equal(
+    result,
+    '{"big":1e+23,"frac":0.125,"negZero":0,"small":1e-7,"zero":0}'
+  );
+});
+
 test("RFC 8785: Object key sorting by UTF-16 code units", () => {
   const unordered = {
     z: 1,

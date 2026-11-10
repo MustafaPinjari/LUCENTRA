@@ -179,6 +179,65 @@ test("validateReleaseManifest: Accepts valid previousManifestHash and rejects in
   );
 });
 
+test("validateReleaseManifest: 256 KiB byte size boundary tests (exact, +1 byte, multibyte unicode)", () => {
+  const target = 256 * 1024; // 262,144 bytes
+
+  // 1. Exactly at 262,144 bytes
+  const manifestAtLimit = {
+    schemaVersion: "LUCENTRA-Manifest-v0.1",
+    domain: "example.com",
+    version: "1.0.0",
+    createdAt: 1700000000,
+    expiresAt: 1799999999,
+    resources: [
+      {
+        path: "/padding",
+        size: 10,
+        sha256: "sha256:09ef5fbb033f41f426ed9f32441e763efba30c5d256c9bb56d9deddd7bff4bf1",
+        type: "script",
+      },
+    ],
+  };
+
+  const initialBytes = Buffer.byteLength(JSON.stringify(manifestAtLimit), "utf8");
+  const padLen = target - initialBytes;
+  manifestAtLimit.resources[0]!.path = "/padding" + "x".repeat(padLen);
+  assert.equal(Buffer.byteLength(JSON.stringify(manifestAtLimit), "utf8"), 262144);
+
+  // Exactly at boundary passes
+  const validated = validateReleaseManifest(manifestAtLimit);
+  assert.ok(validated);
+
+  // 2. Exactly 1 byte over (262,145 bytes)
+  const manifestOverLimit = {
+    ...manifestAtLimit,
+    resources: [
+      {
+        ...manifestAtLimit.resources[0]!,
+        path: manifestAtLimit.resources[0]!.path + "y", // +1 byte
+      },
+    ],
+  };
+  assert.equal(Buffer.byteLength(JSON.stringify(manifestOverLimit), "utf8"), 262145);
+  assert.throws(
+    () => validateReleaseManifest(manifestOverLimit),
+    (err: unknown) => err instanceof LucentraError && err.code === "MANIFEST_SIZE_EXCEEDED"
+  );
+
+  // 3. Multibyte Unicode input: 4-byte characters where char length != byte length
+  // 70,000 emojis (each 4 bytes = 280,000 bytes) exceeds 256 KiB
+  // Inject into raw serialized string to test UTF-8 byte boundary on unicode
+  const rawUnicodeString = JSON.stringify({
+    ...VALID_SAMPLE_MANIFEST,
+    version: "v1.0.0",
+  }).replace('"v1.0.0"', '"' + "🔥".repeat(70000) + '"');
+  assert.ok(Buffer.byteLength(rawUnicodeString, "utf8") > 262144);
+  assert.throws(
+    () => validateReleaseManifest(JSON.parse(rawUnicodeString)),
+    (err: unknown) => err instanceof LucentraError && (err.code === "MANIFEST_SIZE_EXCEEDED" || err.code === "INVALID_MANIFEST_SCHEMA")
+  );
+});
+
 test("validateReleaseManifest: Enforces MAX_MANIFEST_RESOURCE_COUNT limit", () => {
   const tooManyResources = Array.from({ length: MAX_MANIFEST_RESOURCE_COUNT + 1 }, (_, i) => ({
     path: `/script-${i}.js`,

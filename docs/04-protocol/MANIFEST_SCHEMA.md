@@ -101,6 +101,8 @@ This document provides the formal JSON Schema (Draft 2020-12) for the `LUCENTRA-
 1. **Path Normalization:** Resource `path` strings must begin with a leading forward slash `/` and must not contain directory traversal tokens (`../` or `./`).
 2. **Hash Format:** The `sha256` field must be strictly lowercase hex (64 characters) preceded by the standard prefix `sha256:`.
 3. **Temporal Validity:** `expiresAt` must be strictly greater than `createdAt`.
+4. **Manifest Byte Size Limit:** The serialized manifest payload must not exceed 256 KiB (262,144 bytes), measured strictly as UTF-8 byte length. Manifests exceeding this limit must be rejected with error `MANIFEST_SIZE_EXCEEDED`.
+5. **Maximum Resource Count:** A release manifest must declare between 1 and 100 resources (`maxItems: 100`). Manifests declaring more than 100 resources must be rejected with error `RESOURCE_COUNT_EXCEEDED`.
 
 ---
 

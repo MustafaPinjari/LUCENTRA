@@ -116,8 +116,10 @@ stateDiagram-v2
 
 1. **Ordering Invariance:** Even if an application reorders its `<script>` tags in the HTML, verification succeeds as long as all loaded scripts exist with matching hashes in the manifest.
 2. **Strict Inclusivity:** If a script tag executes in the browser whose path/content is **not** declared in the manifest, the state machine must immediately transition to `UNVERIFIED_RESOURCE_DETECTED`.
-3. **Expiration Boundary:** If `current_timestamp > expiresAt`, the manifest is deemed expired, transitioning to `UNATTESTED_RELEASE` until a renewed release is attested.
-4. **Execution Layer Distinction:** Verification operates across Layers 1–6 (DOM script discovery and independent retrieval/comparison). It does not claim Layer 7 verification (in-memory V8 engine JIT byte inspection or inline dynamic `eval()` execution).
+3. **Complete Resource Verification:** A release cannot receive `VERIFIED_RELEASE_MATCH` based on partial script matching. Every resource declared in the manifest must have a corresponding observation. If any declared resource observation is missing or encounters a retrieval failure, the engine must yield `INDETERMINATE`. Any hash mismatch or unexpected external script immediately forces `UNVERIFIED_RESOURCE_DETECTED`.
+4. **Expiration Boundary:** If `current_timestamp > expiresAt`, the manifest is deemed expired, transitioning to `UNATTESTED_RELEASE` until a renewed release is attested.
+5. **Payload Bounds:** Serialized release manifests must not exceed 256 KiB (262,144 bytes) UTF-8 encoded, and must declare at most 100 script resources.
+6. **Execution Layer Distinction:** Verification operates across Layers 1–6 (DOM script discovery and independent retrieval/comparison). It does not claim Layer 7 verification (in-memory V8 engine JIT byte inspection or inline dynamic `eval()` execution).
 
 ---
 

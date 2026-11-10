@@ -422,3 +422,259 @@ test("verifyRelease: Supports authorized signing key delegation", async () => {
   assert.equal(result.recoveredSigner.toLowerCase(), delegate.address.toLowerCase());
 });
 
+// ============================================================================
+// Complete Resource Verification Invariant Tests (5-Resource Test Suite)
+// ============================================================================
+
+async function setupFiveResourceFixture() {
+  const privateKey = generatePrivateKey();
+  const account = privateKeyToAccount(privateKey);
+
+  const scripts = [
+    { path: "/static/js/main.js", content: "console.log('script 1: main');" },
+    { path: "/static/js/vendor.js", content: "console.log('script 2: vendor');" },
+    { path: "/static/js/runtime.js", content: "console.log('script 3: runtime');" },
+    { path: "/static/js/chunk-a.js", content: "console.log('script 4: chunk-a');" },
+    { path: "/static/js/chunk-b.js", content: "console.log('script 5: chunk-b');" },
+  ];
+
+  const resources = scripts.map((s) => ({
+    path: s.path,
+    size: Buffer.byteLength(s.content),
+    sha256: hashAndFormatResource(s.content),
+    type: "script" as const,
+  }));
+
+  const now = 1700000000;
+  const manifest: ReleaseManifest = {
+    schemaVersion: "LUCENTRA-Manifest-v0.1",
+    domain: "example.com",
+    version: "1.0.0",
+    createdAt: now,
+    expiresAt: now + 86400,
+    resources,
+  };
+
+  const canonicalJson = canonicalizeManifest(manifest);
+  const manifestHash = hashManifest(canonicalJson);
+  const { signature } = await signReleaseManifestWithAccount({
+    manifest,
+    manifestHash,
+    privateKey,
+  });
+
+  return {
+    privateKey,
+    account,
+    manifest,
+    manifestHash,
+    signature,
+    scripts,
+    now,
+  };
+}
+
+test("verifyRelease: 1 of 5 resources observed yields INDETERMINATE (incomplete observation)", async () => {
+  const fixture = await setupFiveResourceFixture();
+
+  // Only observe 1 of the 5 declared resources
+  const result = await verifyRelease({
+    manifest: fixture.manifest,
+    signature: fixture.signature,
+    expectedPublisher: fixture.account.address,
+    observedResources: [
+      { path: fixture.scripts[0]!.path, bytes: fixture.scripts[0]!.content },
+    ],
+    evaluationTime: fixture.now + 100,
+  });
+
+  assert.equal(result.state, "INDETERMINATE");
+  assert.equal(result.isValid, false);
+  const missingCount = result.resourceDetails.filter((r) => r.status === "MISSING").length;
+  assert.equal(missingCount, 4);
+  assert.ok(result.errors.some((e) => e.code === "MISSING_RESOURCE_DETECTED"));
+});
+
+test("verifyRelease: 4 of 5 resources observed yields INDETERMINATE (missing 1 observation)", async () => {
+  const fixture = await setupFiveResourceFixture();
+
+  // Observe 4 of 5 resources
+  const result = await verifyRelease({
+    manifest: fixture.manifest,
+    signature: fixture.signature,
+    expectedPublisher: fixture.account.address,
+    observedResources: fixture.scripts.slice(0, 4).map((s) => ({
+      path: s.path,
+      bytes: s.content,
+    })),
+    evaluationTime: fixture.now + 100,
+  });
+
+  assert.equal(result.state, "INDETERMINATE");
+  assert.equal(result.isValid, false);
+  const missing = result.resourceDetails.find((r) => r.path === fixture.scripts[4]!.path);
+  assert.equal(missing?.status, "MISSING");
+  assert.ok(result.errors.some((e) => e.code === "MISSING_RESOURCE_DETECTED"));
+});
+
+test("verifyRelease: All 5 of 5 resources observed and matching yields VERIFIED_RELEASE_MATCH", async () => {
+  const fixture = await setupFiveResourceFixture();
+
+  // Observe all 5 matching resources
+  const result = await verifyRelease({
+    manifest: fixture.manifest,
+    signature: fixture.signature,
+    expectedPublisher: fixture.account.address,
+    observedResources: fixture.scripts.map((s) => ({
+      path: s.path,
+      bytes: s.content,
+    })),
+    evaluationTime: fixture.now + 100,
+  });
+
+  assert.equal(result.state, "VERIFIED_RELEASE_MATCH");
+  assert.equal(result.isValid, true);
+  assert.equal(result.resourceDetails.length, 5);
+  assert.ok(result.resourceDetails.every((r) => r.status === "MATCH"));
+  assert.equal(result.errors.length, 0);
+});
+
+test("verifyRelease: 1 of 5 resources mismatching yields UNVERIFIED_RESOURCE_DETECTED", async () => {
+  const fixture = await setupFiveResourceFixture();
+
+  // 4 matching, 1 tampered
+  const observed = fixture.scripts.map((s, idx) => ({
+    path: s.path,
+    bytes: idx === 2 ? s.content + "\n// modified byte" : s.content,
+  }));
+
+  const result = await verifyRelease({
+    manifest: fixture.manifest,
+    signature: fixture.signature,
+    expectedPublisher: fixture.account.address,
+    observedResources: observed,
+    evaluationTime: fixture.now + 100,
+  });
+
+  assert.equal(result.state, "UNVERIFIED_RESOURCE_DETECTED");
+  assert.equal(result.isValid, false);
+  const mismatch = result.resourceDetails.find((r) => r.path === fixture.scripts[2]!.path);
+  assert.equal(mismatch?.status, "MISMATCH");
+  assert.ok(result.errors.some((e) => e.code === "RESOURCE_HASH_MISMATCH"));
+});
+
+test("verifyRelease: 1 resource retrieval failure yields INDETERMINATE", async () => {
+  const fixture = await setupFiveResourceFixture();
+
+  // 4 successful observations, 1 failed retrieval
+  const observed = [
+    ...fixture.scripts.slice(0, 4).map((s) => ({
+      path: s.path,
+      bytes: s.content,
+    })),
+    {
+      path: fixture.scripts[4]!.path,
+      retrievalFailed: true,
+      retrievalError: "HTTP 503 Service Unavailable",
+    },
+  ];
+
+  const result = await verifyRelease({
+    manifest: fixture.manifest,
+    signature: fixture.signature,
+    expectedPublisher: fixture.account.address,
+    observedResources: observed,
+    evaluationTime: fixture.now + 100,
+  });
+
+  assert.equal(result.state, "INDETERMINATE");
+  assert.equal(result.isValid, false);
+  const failed = result.resourceDetails.find((r) => r.path === fixture.scripts[4]!.path);
+  assert.equal(failed?.status, "FAILED");
+  assert.ok(result.errors.some((e) => e.code === "RESOURCE_RETRIEVAL_FAILED"));
+});
+
+test("verifyRelease: Unexpected additional external resource yields UNVERIFIED_RESOURCE_DETECTED", async () => {
+  const fixture = await setupFiveResourceFixture();
+
+  // 5 matching + 1 unexpected injected script
+  const observed = [
+    ...fixture.scripts.map((s) => ({ path: s.path, bytes: s.content })),
+    { path: "/injected/unauthorized.js", bytes: "alert('injected');" },
+  ];
+
+  const result = await verifyRelease({
+    manifest: fixture.manifest,
+    signature: fixture.signature,
+    expectedPublisher: fixture.account.address,
+    observedResources: observed,
+    evaluationTime: fixture.now + 100,
+  });
+
+  assert.equal(result.state, "UNVERIFIED_RESOURCE_DETECTED");
+  assert.equal(result.isValid, false);
+  const unexpected = result.resourceDetails.find((r) => r.path === "/injected/unauthorized.js");
+  assert.equal(unexpected?.status, "UNEXPECTED");
+  assert.ok(result.errors.some((e) => e.code === "UNEXPECTED_RESOURCE_DETECTED"));
+});
+
+test("verifyRelease: Duplicate observations handled safely (identical vs conflicting)", async () => {
+  const fixture = await setupReleaseFixture();
+
+  // Case A: Duplicate observation with identical digest -> deduplicated, VERIFIED_RELEASE_MATCH
+  const resultA = await verifyRelease({
+    manifest: fixture.manifest,
+    signature: fixture.signature,
+    expectedPublisher: fixture.account.address,
+    observedResources: [
+      { path: fixture.scriptPath, bytes: fixture.scriptContent },
+      { path: fixture.scriptPath, bytes: fixture.scriptContent }, // Duplicate identical
+    ],
+    evaluationTime: fixture.now + 100,
+  });
+
+  assert.equal(resultA.state, "VERIFIED_RELEASE_MATCH");
+  assert.equal(resultA.isValid, true);
+  assert.ok(resultA.warnings.some((w) => w.includes("Duplicate observation")));
+
+  // Case B: Duplicate observation with CONFLICTING digest -> UNVERIFIED_RESOURCE_DETECTED
+  const resultB = await verifyRelease({
+    manifest: fixture.manifest,
+    signature: fixture.signature,
+    expectedPublisher: fixture.account.address,
+    observedResources: [
+      { path: fixture.scriptPath, bytes: fixture.scriptContent },
+      { path: fixture.scriptPath, bytes: fixture.scriptContent + "\n// conflicting" }, // Conflicting
+    ],
+    evaluationTime: fixture.now + 100,
+  });
+
+  assert.equal(resultB.state, "UNVERIFIED_RESOURCE_DETECTED");
+  assert.equal(resultB.isValid, false);
+  assert.ok(resultB.errors.some((e) => e.code === "RESOURCE_HASH_MISMATCH"));
+});
+
+test("verifyRelease: Duplicate manifest entries rejected in schema check (INDETERMINATE)", async () => {
+  const fixture = await setupReleaseFixture();
+
+  const manifestWithDuplicatePaths = {
+    ...fixture.manifest,
+    resources: [
+      fixture.manifest.resources[0]!,
+      fixture.manifest.resources[0]!, // Duplicate path entry in manifest
+    ],
+  };
+
+  const result = await verifyRelease({
+    manifest: manifestWithDuplicatePaths,
+    signature: fixture.signature,
+    expectedPublisher: fixture.account.address,
+    observedResources: [{ path: fixture.scriptPath, bytes: fixture.scriptContent }],
+    evaluationTime: fixture.now + 100,
+  });
+
+  assert.equal(result.state, "INDETERMINATE");
+  assert.equal(result.isValid, false);
+  assert.ok(result.errors.some((e) => e.code === "INVALID_MANIFEST_SCHEMA"));
+});
+
