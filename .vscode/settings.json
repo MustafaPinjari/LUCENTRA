@@ -1,0 +1,22 @@
+{
+  "solidity.compileUsingRemoteVersion": "v0.8.24",
+  "solidity.defaultCompiler": "remote",
+  "solidity.monoRepoSupport": true,
+  "solidity.packageDefaultDependenciesContractsDirectory": "src",
+  "solidity.packageDefaultDependenciesDirectory": "lib",
+  "solidity.remappings": [
+    "forge-std/=contracts/lib/forge-std/src/",
+    "@openzeppelin/contracts/=contracts/lib/openzeppelin-contracts/contracts/",
+    "@ethereum-attestation-service/eas-contracts/=contracts/lib/eas-contracts/",
+    "src/=contracts/src/",
+    "test/=contracts/test/"
+  ],
+  "solidity.remappingsUnix": [
+    "forge-std/=contracts/lib/forge-std/src/",
+    "@openzeppelin/contracts/=contracts/lib/openzeppelin-contracts/contracts/",
+    "@ethereum-attestation-service/eas-contracts/=contracts/lib/eas-contracts/",
+    "src/=contracts/src/",
+    "test/=contracts/test/"
+  ]
+}
+

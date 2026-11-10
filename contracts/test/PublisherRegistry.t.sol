@@ -2,8 +2,8 @@
 pragma solidity 0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {PublisherRegistry} from "../src/PublisherRegistry.sol";
-import {IPublisherRegistry} from "../src/interfaces/IPublisherRegistry.sol";
+import {PublisherRegistry} from "src/PublisherRegistry.sol";
+import {IPublisherRegistry} from "src/interfaces/IPublisherRegistry.sol";
 
 contract PublisherRegistryTest is Test {
     PublisherRegistry public registry;

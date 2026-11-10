@@ -1,0 +1,6 @@
+forge-std/=contracts/lib/forge-std/src/
+@openzeppelin/contracts/=contracts/lib/openzeppelin-contracts/contracts/
+@ethereum-attestation-service/eas-contracts/=contracts/lib/eas-contracts/
+src/=contracts/src/
+test/=contracts/test/
+

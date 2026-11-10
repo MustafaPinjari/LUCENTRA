@@ -10,7 +10,9 @@ evm_version = "cancun"
 remappings = [
     "forge-std/=lib/forge-std/src/",
     "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
-    "@ethereum-attestation-service/eas-contracts/=lib/eas-contracts/"
+    "@ethereum-attestation-service/eas-contracts/=lib/eas-contracts/",
+    "src/=src/",
+    "test/=test/"
 ]
 
 [rpc_endpoints]

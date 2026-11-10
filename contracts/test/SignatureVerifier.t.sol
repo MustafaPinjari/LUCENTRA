@@ -2,9 +2,9 @@
 pragma solidity 0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {SignatureVerifier} from "../src/SignatureVerifier.sol";
-import {PublisherRegistry} from "../src/PublisherRegistry.sol";
-import {ISignatureVerifier} from "../src/interfaces/ISignatureVerifier.sol";
+import {SignatureVerifier} from "src/SignatureVerifier.sol";
+import {PublisherRegistry} from "src/PublisherRegistry.sol";
+import {ISignatureVerifier} from "src/interfaces/ISignatureVerifier.sol";
 
 contract SignatureVerifierTest is Test {
     SignatureVerifier public verifier;
@@ -84,7 +84,7 @@ contract SignatureVerifierTest is Test {
     // 1. SPRINT 1 TEST VECTOR 3 CROSS-LANGUAGE VERIFICATION
     // =========================================================================
 
-    function test_CrossLanguage_TestVector3_Verification() public view {
+    function test_CrossLanguage_TestVector3_Verification() public pure {
         // Exact vector from packages/core/test/signature.test.ts
         // Private Key: 0x4c0883a69102937d6231471b5dbb6204db7e716b78ac5c7827453b4112f46973
         // Expected Signer: 0x93309a65fb019f6b9ea203b5f90d47ad9f88c3c6 (lower)

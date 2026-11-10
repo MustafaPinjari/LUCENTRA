@@ -9,12 +9,12 @@ import {
     RevocationRequest,
     RevocationRequestData
 } from "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
-import {MockEAS} from "./mocks/MockEAS.sol";
-import {PublisherRegistry} from "../src/PublisherRegistry.sol";
-import {SignatureVerifier} from "../src/SignatureVerifier.sol";
-import {ReleaseAttestationVerifier} from "../src/ReleaseAttestationVerifier.sol";
-import {IReleaseAttestationVerifier} from "../src/interfaces/IReleaseAttestationVerifier.sol";
-import {ISignatureVerifier} from "../src/interfaces/ISignatureVerifier.sol";
+import {MockEAS} from "test/mocks/MockEAS.sol";
+import {PublisherRegistry} from "src/PublisherRegistry.sol";
+import {SignatureVerifier} from "src/SignatureVerifier.sol";
+import {ReleaseAttestationVerifier} from "src/ReleaseAttestationVerifier.sol";
+import {IReleaseAttestationVerifier} from "src/interfaces/IReleaseAttestationVerifier.sol";
+import {ISignatureVerifier} from "src/interfaces/ISignatureVerifier.sol";
 
 contract EASIntegrationTest is Test {
     MockEAS public eas;
