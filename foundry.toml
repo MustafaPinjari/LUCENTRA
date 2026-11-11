@@ -17,6 +17,8 @@ remappings = [
     "test/=contracts/test/"
 ]
 
+fs_permissions = [{ access = "read", path = "./" }]
+
 [rpc_endpoints]
 sepolia = "${SEPOLIA_RPC_URL}"
 arbitrum_sepolia = "${ARBITRUM_SEPOLIA_RPC_URL}"

@@ -81,3 +81,13 @@ export {
   HONEST_VERIFICATION_SECURITY_DISCLOSURE,
 } from "./verifier.js";
 
+// On-Chain EVM & EAS Integration
+export {
+  LucentraChainClient,
+  type LucentraDeploymentConfig,
+  type OnChainPublisherInfo,
+  type DecodedReleaseAttestationData,
+  type OnChainAttestationRecord,
+  type VerifyOnChainOptions,
+} from "./chain.js";
+
