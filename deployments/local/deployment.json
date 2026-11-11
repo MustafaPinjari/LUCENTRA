@@ -2,34 +2,34 @@
     "network":  "anvil-local",
     "chainId":  31337,
     "rpcUrl":  "http://127.0.0.1:8545",
-    "timestamp":  "2026-11-11T02:02:34Z",
+    "timestamp":  "2026-11-11T02:48:46Z",
     "schema":  {
                    "uid":  "0xac04bb1a769e2c3647d6b15fbb4459e8d708947771b94466bf8f648b3c8c3b50",
                    "raw":  "bytes32 manifestHash,string domain,string version,uint64 sequence,bytes32 previousManifestHash,uint64 timestamp,uint64 expiresAt,address signingKey,bytes signature",
                    "resolver":  "0x0000000000000000000000000000000000000000",
                    "revocable":  true,
-                   "transactionHash":  "0x3deaf8f211a6baf8d279969ecdba6c0dedb71906665fb495e97088ae96c207bc"
+                   "transactionHash":  "0x02e7386c0fda13775ba68622697793dc13737fefd142a4b4b8cc6f6f10118c56"
                },
     "contracts":  {
                       "SchemaRegistry":  {
-                                             "address":  "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
-                                             "transactionHash":  "0x367e81ce0ef42af904c0a52ae539547616ccfe85823bee5b2168b5160dfed396"
+                                             "address":  "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+                                             "transactionHash":  "0x46e4f3d304b7ad822aa1165a48d3728619c6250d53c57e1c883a15c3bede77b0"
                                          },
                       "EAS":  {
-                                  "address":  "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
-                                  "transactionHash":  "0xd27805b938d93949f518351c1f05a252b6691fd704577f122d9b61e4435dc762"
+                                  "address":  "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+                                  "transactionHash":  "0x836d924723f97a82bcb1d7fb57779cc13cdf058f2c24d4677779e478076a44ed"
                               },
                       "PublisherRegistry":  {
-                                                "address":  "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
-                                                "transactionHash":  "0xb9faceebc70bc923eeaeb8e59a28a5c63cc26a559e1c728ee8efc8e1f48caed5"
+                                                "address":  "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+                                                "transactionHash":  "0x742f229dd7cccf7ba1e971d7af9294e6f5c4faed7fa9c5ac9329a8cf946d391a"
                                             },
                       "SignatureVerifier":  {
-                                                "address":  "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
-                                                "transactionHash":  "0x5c3c9c40d8c4e9d180edd619b730433945f9ff44c20cbe407d6f9bf796a2571b"
+                                                "address":  "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+                                                "transactionHash":  "0xe31e12909aa24c8254f7552d901661e296a98202c835999d98f53ff4585d5a76"
                                             },
                       "ReleaseAttestationVerifier":  {
-                                                         "address":  "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
-                                                         "transactionHash":  "0xc2768a7477499c044537df7d6e360a662aa49e7923239bb5cbd4c263800358b0"
+                                                         "address":  "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+                                                         "transactionHash":  "0x2bc1aea18a302713ff577807f3aa5f8287da6ffdd920b55e1c80344b3ca012a7"
                                                      }
                   },
     "roles":  {

@@ -1,0 +1,1 @@
+"""LUCENTRA Django Applications package."""

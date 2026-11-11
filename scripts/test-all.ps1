@@ -55,17 +55,16 @@ if ($forgeCmd -and (Test-Path "contracts/foundry.toml")) {
     Write-Host "Skipping contracts test (contracts/foundry.toml or forge not found)." -ForegroundColor DarkGray
 }
 
-# 4. Backend (pytest)
-Write-Host "`n[4/6] Testing Backend Services (pytest)..." -ForegroundColor Yellow
-$pyTestExe = "services/backend/.venv/Scripts/pytest.exe"
-if (Test-Path $pyTestExe) {
+# 4. Backend (Django manage.py test)
+Write-Host "`n[4/6] Testing Backend Services (Django manage.py test)..." -ForegroundColor Yellow
+if (Test-Path "services/backend/manage.py") {
     Push-Location "services/backend"
-    & $pyTestExe
+    & python manage.py test tests
     if ($LASTEXITCODE -ne 0) { $Failures++ }
     $ExecutedSuites++
     Pop-Location
 } else {
-    Write-Host "Skipping backend test (pytest not found in services/backend/.venv)." -ForegroundColor DarkGray
+    Write-Host "Skipping backend test (services/backend/manage.py not found)." -ForegroundColor DarkGray
 }
 
 # 5. Dashboard (Next.js / Vitest)

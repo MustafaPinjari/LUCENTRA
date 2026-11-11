@@ -192,7 +192,22 @@ export class LucentraChainClient {
   public readonly config: LucentraDeploymentConfig;
 
   constructor(config: LucentraDeploymentConfig) {
-    this.config = config;
+    const contracts: any = {};
+    for (const [k, v] of Object.entries(config.contracts || {})) {
+      contracts[k] =
+        typeof v === "string" ? { address: getAddress(v) } : v;
+    }
+    const schemaUid =
+      (config as any).schemaUid ||
+      (config.schema && (config.schema as any).uid) ||
+      (typeof (config as any).schema === "string" ? (config as any).schema : "");
+    const schema: any = { uid: schemaUid || "", raw: "" };
+
+    this.config = {
+      ...config,
+      contracts,
+      schema,
+    };
     this.client = createPublicClient({
       transport: http(config.rpcUrl),
     });
@@ -317,8 +332,14 @@ export class LucentraChainClient {
         isAttestationRevoked = attestationRecord.revocationTime !== 0n;
         const isExpired =
           attestationRecord.expirationTime !== 0n && evalTime > attestationRecord.expirationTime;
+        const expectedSchema = (
+          this.config.schema?.uid ||
+          (this.config as any).schemaUid ||
+          ""
+        ).toLowerCase();
         const schemaMatches =
-          attestationRecord.schema.toLowerCase() === this.config.schema.uid.toLowerCase();
+          !expectedSchema ||
+          attestationRecord.schema.toLowerCase() === expectedSchema;
 
         if (schemaMatches && !isExpired && !isAttestationRevoked) {
           const isAuthorized = await this.isKeyAuthorized(
