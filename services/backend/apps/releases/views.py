@@ -1,6 +1,6 @@
 import logging
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets, status
+from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from apps.domains.models import Domain, normalize_domain_name
@@ -18,8 +18,16 @@ from .serializers import (
 logger = logging.getLogger(__name__)
 
 
-class ReleaseViewSet(viewsets.ModelViewSet):
-    """Viewset for submitting, verifying, and retrieving releases."""
+class ReleaseViewSet(
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Viewset for submitting, verifying, and retrieving releases.
+
+    Modifications (PUT, PATCH) and deletions (DELETE) of release records are disallowed.
+    """
 
     queryset = Release.objects.all().select_related("domain", "signing_key")
     lookup_field = "id"
@@ -148,39 +156,41 @@ class ReleaseViewSet(viewsets.ModelViewSet):
         attestation_uid = attest_res.get("attestationUid")
         tx_hash = attest_res.get("transactionHash")
 
-        # 4. Save Release and Attestation models
-        release, created = Release.objects.update_or_create(
-            domain=domain,
-            sequence=int(manifest.get("sequence", 1)),
-            defaults={
-                "manifest_hash": manifest_hash,
-                "version": str(manifest.get("version")),
-                "previous_manifest_hash": attestation_data["previousManifestHash"],
-                "signing_key": signing_key,
-                "timestamp": attestation_data["timestamp"],
-                "expires_at": attestation_data["expiresAt"],
-                "signature": signature,
-                "manifest_json": manifest,
-                "attestation_uid": attestation_uid,
-                "transaction_hash": tx_hash,
-                "status": ReleaseStatus.ATTESTED,
-            },
-        )
-
-        contracts = client.get_contract_addresses()
-        release_verifier = contracts.get("ReleaseAttestationVerifier", "")
-
-        if attestation_uid:
-            Attestation.objects.update_or_create(
-                uid=attestation_uid,
+        # 4. Save Release and Attestation models inside atomic transaction
+        from django.db import transaction
+        with transaction.atomic():
+            release, created = Release.objects.update_or_create(
+                domain=domain,
+                sequence=int(manifest.get("sequence", 1)),
                 defaults={
-                    "release": release,
-                    "schema_uid": client.get_schema_uid(),
-                    "attester_address": release_verifier,
-                    "transaction_hash": tx_hash or "",
-                    "revoked": False,
+                    "manifest_hash": manifest_hash,
+                    "version": str(manifest.get("version")),
+                    "previous_manifest_hash": attestation_data["previousManifestHash"],
+                    "signing_key": signing_key,
+                    "timestamp": attestation_data["timestamp"],
+                    "expires_at": attestation_data["expiresAt"],
+                    "signature": signature,
+                    "manifest_json": manifest,
+                    "attestation_uid": attestation_uid,
+                    "transaction_hash": tx_hash,
+                    "status": ReleaseStatus.ATTESTED,
                 },
             )
+
+            contracts = client.get_contract_addresses()
+            release_verifier = contracts.get("ReleaseAttestationVerifier", "")
+
+            if attestation_uid:
+                Attestation.objects.update_or_create(
+                    uid=attestation_uid,
+                    defaults={
+                        "release": release,
+                        "schema_uid": client.get_schema_uid(),
+                        "attester_address": release_verifier,
+                        "transaction_hash": tx_hash or "",
+                        "revoked": False,
+                    },
+                )
 
         record_audit_event(
             action="RELEASE_ATTESTED",

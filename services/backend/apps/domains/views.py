@@ -1,8 +1,9 @@
 import logging
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone as dt_timezone
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets, status
+from django.db import transaction
+from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from apps.publishers.models import Publisher
@@ -29,11 +30,20 @@ from .dns_service import (
 logger = logging.getLogger(__name__)
 
 
-class DomainViewSet(viewsets.ModelViewSet):
-    """Viewset for domain management, DNS challenges, and blockchain registration."""
+class DomainViewSet(
+    mixins.RetrieveModelMixin,
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Viewset for domain inspection, DNS challenges, blockchain registration, and reconciliation.
+
+    Direct REST mutations (POST, PUT, PATCH, DELETE) are disallowed.
+    Domains are registered strictly through the cryptographic DNS challenge and dual-auth flow.
+    """
 
     queryset = Domain.objects.all().select_related("publisher")
     lookup_field = "canonical_domain"
+    lookup_value_regex = r"[^/]+"
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -158,6 +168,7 @@ class DomainViewSet(viewsets.ModelViewSet):
             )
 
         if result.get("verified"):
+            domain.refresh_from_db()
             record_audit_event(
                 action="DNS_VERIFIED",
                 resource_type="Domain",
@@ -303,27 +314,27 @@ class DomainViewSet(viewsets.ModelViewSet):
         tx_hash = reg_result.get("transactionHash", "")
         now = timezone.now()
 
-        # 5. Mark challenge as consumed
-        active_challenge.consumed_at = now
-        active_challenge.save(update_fields=["consumed_at"])
+        # 5. Atomically mark challenge consumed, update Domain, and record initial SigningKey
+        with transaction.atomic():
+            active_challenge.consumed_at = now
+            active_challenge.save(update_fields=["consumed_at"])
 
-        # 6. Update Domain status and record SigningKey
-        domain.registration_status = DomainStatus.REGISTERED_ONCHAIN
-        domain.onchain_registration_transaction = tx_hash
-        domain.registered_at = now
-        domain.save(
-            update_fields=[
-                "registration_status",
-                "onchain_registration_transaction",
-                "registered_at",
-            ]
-        )
+            domain.registration_status = DomainStatus.REGISTERED_ONCHAIN
+            domain.onchain_registration_transaction = tx_hash
+            domain.registered_at = now
+            domain.save(
+                update_fields=[
+                    "registration_status",
+                    "onchain_registration_transaction",
+                    "registered_at",
+                ]
+            )
 
-        SigningKey.objects.get_or_create(
-            domain=domain,
-            public_address=initial_signing_key.lower(),
-            defaults={"status": "ACTIVE"},
-        )
+            SigningKey.objects.get_or_create(
+                domain=domain,
+                public_address=initial_signing_key.lower(),
+                defaults={"status": "ACTIVE"},
+            )
 
         record_audit_event(
             action="DOMAIN_REGISTERED_ONCHAIN",
@@ -393,3 +404,67 @@ class DomainViewSet(viewsets.ModelViewSet):
                 "last_verified_at": domain.last_verified_at,
             }
         )
+
+    @action(detail=True, methods=["post"], url_path="reconcile")
+    def reconcile(self, request, canonical_domain=None):
+        """Reconcile local domain state with on-chain truth from PublisherRegistry."""
+        domain = self.get_object()
+        client = get_blockchain_client()
+
+        try:
+            info = client.query_publisher(domain.canonical_domain)
+        except BlockchainError as e:
+            return Response(
+                {
+                    "error": {
+                        "code": "blockchain_error",
+                        "message": f"Failed to query on-chain publisher information: {e}",
+                    }
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        if not info.get("isRegistered"):
+            return Response(
+                {
+                    "error": {
+                        "code": "domain_not_registered_onchain",
+                        "message": f"Domain {domain.canonical_domain} is not registered on-chain.",
+                    }
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        owner_addr = str(info.get("owner", "")).lower()
+        is_suspended = bool(info.get("isSuspended", False))
+        registered_at_ts = info.get("registeredAt")
+
+        with transaction.atomic():
+            if domain.publisher.wallet_address.lower() != owner_addr:
+                new_pub, _ = Publisher.objects.get_or_create(wallet_address=owner_addr)
+                domain.publisher = new_pub
+
+            if is_suspended:
+                domain.registration_status = DomainStatus.SUSPENDED
+            else:
+                domain.registration_status = DomainStatus.REGISTERED_ONCHAIN
+
+            if registered_at_ts:
+                domain.registered_at = datetime.fromtimestamp(
+                    registered_at_ts, tz=dt_timezone.utc
+                )
+
+            domain.save()
+
+            record_audit_event(
+                action="DOMAIN_RECONCILED_FROM_CHAIN",
+                resource_type="Domain",
+                resource_id=domain.canonical_domain,
+                actor=owner_addr,
+                metadata={
+                    "isSuspended": is_suspended,
+                    "registeredAt": registered_at_ts,
+                },
+            )
+
+        return Response(DomainDetailSerializer(domain).data, status=status.HTTP_200_OK)

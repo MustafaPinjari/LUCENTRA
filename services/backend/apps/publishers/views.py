@@ -9,8 +9,12 @@ from blockchain.client import get_blockchain_client, BlockchainError
 logger = logging.getLogger(__name__)
 
 
-class PublisherViewSet(viewsets.ModelViewSet):
-    """API endpoint for inspecting and managing publishers."""
+class PublisherViewSet(viewsets.ReadOnlyModelViewSet):
+    """API endpoint for inspecting publishers and querying on-chain nonces.
+
+    Mutations (POST, PUT, PATCH, DELETE) are disallowed. Publishers are created
+    and authorized strictly through the cryptographic domain registration flow.
+    """
 
     queryset = Publisher.objects.all()
     serializer_class = PublisherSerializer

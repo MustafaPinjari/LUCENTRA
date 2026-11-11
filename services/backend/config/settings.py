@@ -152,11 +152,23 @@ DEPLOYMENT_CONFIG_PATH = os.getenv(
     "DEPLOYMENT_CONFIG_PATH",
     str(REPO_ROOT / "deployments" / "local" / "deployment.json"),
 )
+
+LOCAL_ANVIL_REGISTRAR_KEY = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
 reg_key_env = os.getenv("REGISTRAR_PRIVATE_KEY", "").strip()
+
 if not reg_key_env or reg_key_env == "0x" + "0" * 64:
-    # Default to deterministic local Anvil account 1 key for local testnet development
-    REGISTRAR_PRIVATE_KEY = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+    if CHAIN_ID != 31337:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured(
+            f"REGISTRAR_PRIVATE_KEY must be explicitly configured for non-local network (CHAIN_ID={CHAIN_ID})."
+        )
+    REGISTRAR_PRIVATE_KEY = LOCAL_ANVIL_REGISTRAR_KEY
 else:
+    if CHAIN_ID != 31337 and reg_key_env.lower() == LOCAL_ANVIL_REGISTRAR_KEY.lower():
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured(
+            "Security violation: Default Anvil local testnet private key cannot be used on non-local networks."
+        )
     REGISTRAR_PRIVATE_KEY = reg_key_env
 
 # DNS Verification Engine Configuration

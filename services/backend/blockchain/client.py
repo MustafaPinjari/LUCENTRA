@@ -9,12 +9,38 @@ Complies with AGENTS.md Rules 2, 6, 7, 8, 19:
 import json
 import logging
 import os
+import re
 import subprocess
 from pathlib import Path
 from typing import Any, Dict, Optional
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+HEX_KEY_REGEX = re.compile(r"0x[0-9a-fA-F]{64}")
+LOCAL_ANVIL_REGISTRAR_KEY = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+
+ALLOWED_CLI_COMMANDS = frozenset({
+    "check-readiness",
+    "verify-registration-auth",
+    "get-nonce",
+    "query-publisher",
+    "is-key-authorized",
+    "register-domain",
+    "query-attestation",
+    "query-latest-release",
+    "attest-release",
+    "verify-release",
+    "sign-registration-auth",
+    "sign-release",
+})
+
+
+def redact_sensitive_data(text: str) -> str:
+    """Redact 64-hex EVM private keys from strings and exception messages."""
+    if not isinstance(text, str):
+        text = str(text)
+    return HEX_KEY_REGEX.sub("[REDACTED_KEY]", text)
 
 
 class BlockchainError(Exception):
@@ -89,6 +115,11 @@ class BlockchainClient:
 
     def _run_cli_command(self, command: str, payload: Dict[str, Any], timeout: float = 20.0) -> Dict[str, Any]:
         """Execute a command against @lucentra/core CLI via stdin/stdout JSON subprocess."""
+        if command not in ALLOWED_CLI_COMMANDS:
+            raise BlockchainExecutionError(
+                f"Command '{command}' is not in the approved CLI command whitelist."
+            )
+
         cli_file = Path(self.cli_path)
         if not cli_file.is_absolute():
             cli_file = (settings.BASE_DIR / cli_file).resolve()
@@ -124,14 +155,16 @@ class BlockchainClient:
                 detail = err_data.get("error", error_msg)
             except Exception:
                 detail = error_msg
-            logger.warning("CLI command '%s' returned exit code %s: %s", command, result.returncode, detail)
-            raise BlockchainExecutionError(f"Blockchain CLI error: {detail}")
+            safe_detail = redact_sensitive_data(detail)
+            logger.warning("CLI command '%s' returned exit code %s: %s", command, result.returncode, safe_detail)
+            raise BlockchainExecutionError(f"Blockchain CLI error: {safe_detail}")
 
         try:
             response = json.loads(result.stdout)
             return response
         except json.JSONDecodeError as e:
-            logger.error("CLI returned invalid JSON: %s", result.stdout)
+            safe_stdout = redact_sensitive_data(result.stdout)
+            logger.error("CLI returned invalid JSON: %s", safe_stdout)
             raise BlockchainExecutionError(f"CLI returned invalid JSON response: {e}") from e
 
     def check_readiness(self) -> Dict[str, Any]:
@@ -233,6 +266,15 @@ class BlockchainClient:
                 "Registrar private key is not configured in backend environment."
             )
 
+        if (
+            self.chain_id != 31337
+            and self.registrar_private_key
+            and self.registrar_private_key.lower() == LOCAL_ANVIL_REGISTRAR_KEY.lower()
+        ):
+            raise BlockchainExecutionError(
+                "Refusing to use well-known local Anvil registrar key on non-local chain."
+            )
+
         contracts = self.get_contract_addresses()
         payload = {
             "rpcUrl": self.rpc_url,
@@ -272,6 +314,14 @@ class BlockchainClient:
         key = relayer_private_key or self.registrar_private_key
         if not key:
             raise BlockchainExecutionError("Relayer/Registrar private key not configured.")
+
+        if (
+            self.chain_id != 31337
+            and key.lower() == LOCAL_ANVIL_REGISTRAR_KEY.lower()
+        ):
+            raise BlockchainExecutionError(
+                "Refusing to use well-known local Anvil registrar key on non-local chain."
+            )
 
         contracts = self.get_contract_addresses()
         payload = {

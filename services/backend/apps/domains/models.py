@@ -9,13 +9,39 @@ DOMAIN_REGEX = re.compile(
 
 
 def normalize_domain_name(domain: str) -> str:
-    """Normalize domain to lowercase, stripped of whitespace and trailing dots."""
+    """Normalize domain to canonical lowercase ASCII (IDNA / punycode), stripping whitespace, schemes, and trailing dots."""
     if not domain or not isinstance(domain, str):
         return ""
-    normalized = domain.strip().lower()
-    if normalized.endswith("."):
-        normalized = normalized[:-1]
-    return normalized
+    cleaned = domain.strip().lower()
+    if cleaned.startswith("https://"):
+        cleaned = cleaned[8:]
+    elif cleaned.startswith("http://"):
+        cleaned = cleaned[7:]
+
+    if "/" in cleaned:
+        cleaned = cleaned.split("/")[0]
+    if ":" in cleaned:
+        cleaned = cleaned.split(":")[0]
+    if cleaned.endswith("."):
+        cleaned = cleaned[:-1]
+
+    try:
+        ascii_domain = cleaned.encode("idna").decode("ascii")
+    except Exception:
+        return ""
+
+    if not ascii_domain or len(ascii_domain) > 253:
+        return ""
+
+    if not DOMAIN_REGEX.match(ascii_domain):
+        return ""
+
+    labels = ascii_domain.split(".")
+    tld = labels[-1]
+    if len(labels) < 2 or not tld or tld.isdigit():
+        return ""
+
+    return ascii_domain
 
 
 class DomainStatus(models.TextChoices):
