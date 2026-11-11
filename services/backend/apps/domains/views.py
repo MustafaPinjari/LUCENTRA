@@ -208,6 +208,17 @@ class DomainViewSet(
 
         domain = get_object_or_404(Domain, canonical_domain=domain_str)
 
+        if domain.registration_status == DomainStatus.REGISTERED_ONCHAIN:
+            return Response(
+                {
+                    "error": {
+                        "code": "domain_already_registered",
+                        "message": f"Domain {domain_str} is already registered on-chain.",
+                    }
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
         # 1. Verify that domain has a verified, unconsumed DNS challenge
         active_challenge = (
             domain.dns_challenges.filter(
@@ -319,11 +330,16 @@ class DomainViewSet(
             active_challenge.consumed_at = now
             active_challenge.save(update_fields=["consumed_at"])
 
+            if domain.publisher.wallet_address.lower() != publisher_wallet.lower():
+                reg_pub, _ = Publisher.objects.get_or_create(wallet_address=publisher_wallet.lower())
+                domain.publisher = reg_pub
+
             domain.registration_status = DomainStatus.REGISTERED_ONCHAIN
             domain.onchain_registration_transaction = tx_hash
             domain.registered_at = now
             domain.save(
                 update_fields=[
+                    "publisher",
                     "registration_status",
                     "onchain_registration_transaction",
                     "registered_at",
@@ -455,6 +471,20 @@ class DomainViewSet(
                 )
 
             domain.save()
+
+            # Synchronize operational signing key if supplied or active on-chain
+            signing_key_param = request.data.get("signing_key") if hasattr(request, "data") else None
+            if signing_key_param and isinstance(signing_key_param, str):
+                clean_key = signing_key_param.lower()
+                try:
+                    if client.is_key_authorized(domain.canonical_domain, clean_key):
+                        SigningKey.objects.get_or_create(
+                            domain=domain,
+                            public_address=clean_key,
+                            defaults={"status": "ACTIVE"},
+                        )
+                except Exception as e:
+                    logger.warning("Could not check signing key authorization during reconciliation: %s", e)
 
             record_audit_event(
                 action="DOMAIN_RECONCILED_FROM_CHAIN",
