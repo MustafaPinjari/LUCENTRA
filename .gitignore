@@ -70,7 +70,9 @@ dist/
 
 # Browser Extension (apps/extension)
 apps/extension/dist/
+apps/extension/dist-test/
 apps/extension/build/
+dist-test/
 *.crx
 *.xpi
 

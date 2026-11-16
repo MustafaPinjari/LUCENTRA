@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LUCENTRA — Trust, made verifiable.</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="logo-mark">L</div>
+        <div class="brand-text">
+          <div class="brand-title-row">
+            <span class="brand-name">LUCENTRA</span>
+            <span class="badge-version">v0.1.0</span>
+          </div>
+          <span class="brand-tagline">Trust, made verifiable.</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Active Domain Bar -->
+    <div class="domain-bar">
+      <span class="domain-icon">🌐</span>
+      <span id="current-domain" class="current-domain">Detecting tab...</span>
+    </div>
+
+    <!-- Main Verification Status Card -->
+    <main class="main-content">
+      <div id="status-card" class="status-card state-neutral">
+        <div class="status-header">
+          <div id="status-icon" class="status-icon">○</div>
+          <div class="status-title-group">
+            <h2 id="status-label" class="status-label">Initializing...</h2>
+            <span id="status-stage" class="status-stage">Preparing verification</span>
+          </div>
+        </div>
+        <p id="status-explanation" class="status-explanation">
+          Inspecting loaded scripts and querying blockchain publisher registry.
+        </p>
+      </div>
+
+      <!-- Action Button -->
+      <div class="actions">
+        <button id="btn-reverify" class="btn-primary" type="button">
+          <span id="btn-spinner" class="spinner hidden"></span>
+          <span id="btn-text">Verify Now</span>
+        </button>
+      </div>
+
+      <!-- Collapsible Technical Evidence -->
+      <details id="details-section" class="details-section" open>
+        <summary class="details-summary">
+          <span>Cryptographic Evidence</span>
+          <span class="toggle-icon">▾</span>
+        </summary>
+        <div class="details-body">
+          <div class="detail-row">
+            <span class="detail-key">Publisher Wallet:</span>
+            <span class="detail-val-group">
+              <code id="val-publisher" class="code-val">—</code>
+              <button id="btn-copy-publisher" class="btn-copy" title="Copy Address" type="button">📋</button>
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Release Version:</span>
+            <span class="detail-val-group">
+              <code id="val-version" class="code-val">—</code>
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Manifest Digest:</span>
+            <span class="detail-val-group">
+              <code id="val-manifest-hash" class="code-val">—</code>
+              <button id="btn-copy-hash" class="btn-copy" title="Copy Digest" type="button">📋</button>
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">EAS Attestation:</span>
+            <span class="detail-val-group">
+              <code id="val-attestation-uid" class="code-val">—</code>
+              <button id="btn-copy-uid" class="btn-copy" title="Copy UID" type="button">📋</button>
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Signer Recovery:</span>
+            <span class="detail-val-group">
+              <code id="val-signer" class="code-val">—</code>
+            </span>
+          </div>
+
+          <!-- Resources Breakdown -->
+          <div class="resources-breakdown">
+            <h4 class="resources-title">Observed Resources (<span id="resource-count">0</span>)</h4>
+            <div id="resource-list" class="resource-list">
+              <div class="resource-empty">No resources recorded for this page.</div>
+            </div>
+          </div>
+        </div>
+      </details>
+    </main>
+
+    <!-- Honest Security Disclosure -->
+    <footer class="footer">
+      <div class="disclosure-badge">INDEPENDENT VERIFICATION NOTICE</div>
+      <p class="disclosure-text">
+        Cryptographic verification of declared JavaScript resources and publisher identity. Integrity verification does not constitute a guarantee of website safety, code quality, or absence of malicious intent. Verification reflects out-of-band fetched byte integrity and does not inspect in-memory runtime execution state.
+      </p>
+    </footer>
+  </div>
+
+  <script type="module" src="index.js"></script>
+</body>
+</html>

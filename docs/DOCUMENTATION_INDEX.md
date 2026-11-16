@@ -307,6 +307,12 @@ This catalogue indexes all architectural, protocol, cryptographic, security, imp
 | [`SPRINT_3_BACKEND_IMPLEMENTATION_REPORT.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/SPRINT_3_BACKEND_IMPLEMENTATION_REPORT.md) | Sprint 3 Django REST Framework Backend Implementation & Test Verification Report | TESTED | All docs | Principal Backend Engineer, Mustafa |
 | [`SPRINT_3_1_SECURITY_AUDIT_REPORT.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/SPRINT_3_1_SECURITY_AUDIT_REPORT.md) | Sprint 3.1 Backend Security & Reliability Audit Report | VERIFIED | All docs | Security Auditor, Mustafa |
 | [`SPRINT_3_1_FINAL_ACCEPTANCE_REPORT.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/SPRINT_3_1_FINAL_ACCEPTANCE_REPORT.md) | Sprint 3.1 Final Acceptance Check Report | VERIFIED | All docs | Security Auditor, Mustafa |
+| [`EXTENSION_ARCHITECTURE.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/EXTENSION_ARCHITECTURE.md) | Chrome Extension Manifest V3 architecture, messaging, and data flow | VERIFIED | All docs | Extension Engineers, Architects |
+| [`EXTENSION_INSTALLATION.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/EXTENSION_INSTALLATION.md) | Chrome Extension installation, loading unpacked, and configuration | APPROVED | None | Developers, End Users |
+| [`EXTENSION_PRIVACY_AND_SECURITY.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/EXTENSION_PRIVACY_AND_SECURITY.md) | Extension privacy guarantees, threat model, SSRF defense, and disclosures | APPROVED | None | Security Researchers, Users |
+| [`SPRINT_4_IMPLEMENTATION_REPORT.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/SPRINT_4_IMPLEMENTATION_REPORT.md) | Sprint 4 Chrome Extension implementation breakdown and test records | VERIFIED | All docs | Principal Browser Security Lead |
+| [`SPRINT_4_SECURITY_AUDIT_REPORT.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/SPRINT_4_SECURITY_AUDIT_REPORT.md) | Sprint 4 Extension security review, SSRF audit, and CSP verification | VERIFIED | All docs | Principal Security Architect |
+| [`SPRINT_4_FINAL_ACCEPTANCE_REPORT.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/SPRINT_4_FINAL_ACCEPTANCE_REPORT.md) | Sprint 4 Final Acceptance Report and formal verification sign-off | VERIFIED | All docs | QA Lead, Mustafa |
 
 
 
