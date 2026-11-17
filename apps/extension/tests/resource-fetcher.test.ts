@@ -100,7 +100,7 @@ test("ResourceFetcher: fetches and hashes valid script bytes from HTTP server", 
 test("ResourceFetcher: enforces max byte size limit", async () => {
   const largeContent = "x".repeat(1000); // 1000 bytes
 
-  const server = http.createServer((req, res) => {
+  const server = http.createServer((_req, res) => {
     res.writeHead(200, {
       "Content-Type": "application/javascript",
       "Content-Length": String(largeContent.length),

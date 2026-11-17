@@ -313,6 +313,9 @@ This catalogue indexes all architectural, protocol, cryptographic, security, imp
 | [`SPRINT_4_IMPLEMENTATION_REPORT.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/SPRINT_4_IMPLEMENTATION_REPORT.md) | Sprint 4 Chrome Extension implementation breakdown and test records | VERIFIED | All docs | Principal Browser Security Lead |
 | [`SPRINT_4_SECURITY_AUDIT_REPORT.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/SPRINT_4_SECURITY_AUDIT_REPORT.md) | Sprint 4 Extension security review, SSRF audit, and CSP verification | VERIFIED | All docs | Principal Security Architect |
 | [`SPRINT_4_FINAL_ACCEPTANCE_REPORT.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/SPRINT_4_FINAL_ACCEPTANCE_REPORT.md) | Sprint 4 Final Acceptance Report and formal verification sign-off | VERIFIED | All docs | QA Lead, Mustafa |
+| [`SPRINT_4_1_INDEPENDENT_SECURITY_AUDIT.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/SPRINT_4_1_INDEPENDENT_SECURITY_AUDIT.md) | Sprint 4.1 Independent Security and Browser Acceptance Audit Report | VERIFIED | All docs | Principal Security Architect, Mustafa |
+| [`SPRINT_4_1_BROWSER_COMPATIBILITY_REPORT.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/SPRINT_4_1_BROWSER_COMPATIBILITY_REPORT.md) | Sprint 4.1 Browser Compatibility, CORS, and Runtime Execution Report | VERIFIED | All docs | Extension QA Lead, Mustafa |
+| [`SPRINT_4_1_REMEDIATION_PLAN.md`](file:///c:/Users/mustafa/Desktop/LUCENTRA/docs/SPRINT_4_1_REMEDIATION_PLAN.md) | Sprint 4.1 Security Remediation Roadmap and Hardening Specifications | APPROVED | All docs | Security Architect, Mustafa |
 
 
 
