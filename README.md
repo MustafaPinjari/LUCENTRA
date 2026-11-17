@@ -72,7 +72,7 @@ flowchart LR
 - **Smart Contracts (`contracts/`):** COMPLETE & VERIFIED (Status: VERIFIED — 79 Foundry tests passing)
 - **Local Blockchain Deployment (`deployments/local/`):** COMPLETE & VERIFIED (Status: VERIFIED — Anvil 31337)
 - **Backend API (`services/backend/`):** COMPLETE & VERIFIED (Status: VERIFIED — 55 tests passing)
-- **Chrome Extension MV3 (`apps/extension/`):** COMPLETE & VERIFIED (Status: VERIFIED — 28 tests passing)
+- **Chrome Extension MV3 (`apps/extension/`):** COMPLETE & HARDENED (Status: VERIFIED — Sprint 4.2 remediated, 61 tests passing)
 - **Frontend Dashboard:** SPECIFIED (Status: APPROVED specification, Sprint 5 implementation)
 
 ---

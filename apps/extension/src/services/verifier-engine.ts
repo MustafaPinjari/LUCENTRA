@@ -9,11 +9,11 @@ import {
   type Address,
   type Hex,
   type ObservedResource,
-  DEFAULT_VERIFYING_CONTRACT,
 } from "@lucentra/core";
+import { isAddress, getAddress } from "viem";
 import type { DiscoveredScript } from "../types/resources.js";
 import type { TabVerificationState, VerificationStage } from "../types/verification.js";
-import type { ExtensionConfig } from "../types/config.js";
+import { type ExtensionConfig, ANVIL_LOCAL_SIGNATURE_VERIFIER } from "../types/config.js";
 import { STATUS_DESCRIPTIONS } from "../shared/constants.js";
 import { extractDomainFromUrl } from "../utils/url.js";
 import { LucentraApiClient, type BackendReleaseRecord } from "./api-client.js";
@@ -61,6 +61,11 @@ export class VerifierEngine {
   ): Promise<TabVerificationState> {
     const domain = extractDomainFromUrl(url);
 
+    // Track inline scripts for security caution indicator
+    const inlineScripts = discoveredScripts.filter((s) => s.isInline);
+    const hasInlineScripts = inlineScripts.length > 0;
+    const inlineScriptCount = inlineScripts.length;
+
     // Initial check: is it a valid web URL with a domain?
     if (!domain) {
       return {
@@ -76,6 +81,8 @@ export class VerifierEngine {
         unverifiedObservedPaths: [],
         summary: "Verification not applicable: URL is not a standard web resource.",
         evaluatedAt: Date.now(),
+        hasInlineScripts,
+        inlineScriptCount,
       };
     }
 
@@ -99,6 +106,8 @@ export class VerifierEngine {
         summary: `Backend connection failure: ${err instanceof Error ? err.message : String(err)}`,
         evaluatedAt: Date.now(),
         errorMessage: String(err),
+        hasInlineScripts,
+        inlineScriptCount,
       };
     }
 
@@ -117,6 +126,8 @@ export class VerifierEngine {
         unverifiedObservedPaths: [],
         summary: STATUS_DESCRIPTIONS.UNREGISTERED_PUBLISHER.explanation,
         evaluatedAt: Date.now(),
+        hasInlineScripts,
+        inlineScriptCount,
       };
     }
 
@@ -143,6 +154,8 @@ export class VerifierEngine {
         unverifiedObservedPaths: [],
         summary: "Domain is registered, but no release manifests have been published or attested.",
         evaluatedAt: Date.now(),
+        hasInlineScripts,
+        inlineScriptCount,
       };
     }
 
@@ -193,6 +206,41 @@ export class VerifierEngine {
           ? [latestRelease.signing_key as Address]
           : [publisherAddr];
 
+    // Resolve verifying contract address (LUC-SEC-041-05 remediation)
+    let verifyingContract: Address | null = null;
+    if (this.config.verifyingContractAddress && isAddress(this.config.verifyingContractAddress)) {
+      verifyingContract = getAddress(this.config.verifyingContractAddress);
+    } else if (domainStatus?.contracts?.SignatureVerifier && isAddress(domainStatus.contracts.SignatureVerifier)) {
+      verifyingContract = getAddress(domainStatus.contracts.SignatureVerifier);
+    } else if (domainStatus?.verifying_contract && isAddress(domainStatus.verifying_contract)) {
+      verifyingContract = getAddress(domainStatus.verifying_contract);
+    } else if (domainStatus?.onchain_info?.verifyingContract && isAddress(domainStatus.onchain_info.verifyingContract)) {
+      verifyingContract = getAddress(domainStatus.onchain_info.verifyingContract);
+    } else if ((domainStatus?.chain_id === 31337 || !domainStatus?.chain_id) && this.config.allowLocalhost) {
+      verifyingContract = ANVIL_LOCAL_SIGNATURE_VERIFIER;
+    }
+
+    if (!verifyingContract) {
+      return {
+        tabId,
+        url,
+        domain,
+        stage: "COMPLETE",
+        verificationState: "INDETERMINATE",
+        isRegisteredPublisher: true,
+        publisherAddress: publisherAddr,
+        releaseVersion: latestRelease.version,
+        details: [],
+        observedResources: [],
+        unobservedManifestPaths: [],
+        unverifiedObservedPaths: [],
+        summary: "Verification indeterminate: Verifying contract address cannot be resolved for chain.",
+        evaluatedAt: Date.now(),
+        hasInlineScripts,
+        inlineScriptCount,
+      };
+    }
+
     const coreResult = await verifyRelease({
       manifest: latestRelease.manifest_json,
       signature: latestRelease.signature as Hex,
@@ -200,7 +248,7 @@ export class VerifierEngine {
       authorizedSigningKeys,
       observedResources,
       chainId: domainStatus.chain_id ?? 31337,
-      verifyingContract: DEFAULT_VERIFYING_CONTRACT,
+      verifyingContract,
       attestationUid: latestRelease.attestation_uid as Hex | undefined,
       isRevoked,
     });
@@ -247,6 +295,8 @@ export class VerifierEngine {
           ? coreResult.errors[0].message
           : STATUS_DESCRIPTIONS[coreResult.state].explanation,
       evaluatedAt: Date.now(),
+      hasInlineScripts,
+      inlineScriptCount,
     };
   }
 }

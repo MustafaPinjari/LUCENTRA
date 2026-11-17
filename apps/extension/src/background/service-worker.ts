@@ -47,7 +47,8 @@ export async function initServiceWorker(): Promise<MessageRouter> {
 
     chrome.tabs.onUpdated?.addListener((tabId, changeInfo) => {
       if (changeInfo.status === "loading" && changeInfo.url) {
-        // Tab navigated to new URL - clear previous badge & state
+        // Tab navigated to new URL - invalidate in-flight verification sessions & clear previous badge & state
+        messageRouter.invalidateTabSession(tabId);
         badgeController.clearBadge(tabId);
         clearTabVerificationState(tabId).catch(() => {});
       }

@@ -16,6 +16,8 @@ const elStatusIcon = document.getElementById("status-icon")!;
 const elStatusLabel = document.getElementById("status-label")!;
 const elStatusStage = document.getElementById("status-stage")!;
 const elStatusExplanation = document.getElementById("status-explanation")!;
+const elInlineCautionBanner = document.getElementById("inline-caution-banner");
+const elInlineCautionText = document.getElementById("inline-caution-text");
 const elBtnReverify = document.getElementById("btn-reverify") as HTMLButtonElement;
 const elBtnSpinner = document.getElementById("btn-spinner")!;
 const elBtnText = document.getElementById("btn-text")!;
@@ -98,6 +100,20 @@ function renderState(state: TabVerificationState): void {
   elStatusLabel.textContent = desc ? desc.label : state.verificationState;
   elStatusStage.textContent = state.stage === "COMPLETE" ? "Verification complete" : `Stage: ${state.stage}`;
   elStatusExplanation.textContent = state.summary || (desc ? desc.explanation : "");
+
+  // Update Inline Script Caution Indicator (LUC-SEC-041-06)
+  if (elInlineCautionBanner) {
+    if (state.hasInlineScripts) {
+      elInlineCautionBanner.classList.remove("hidden");
+      if (elInlineCautionText) {
+        const count = state.inlineScriptCount ?? 1;
+        const countLabel = count === 1 ? "1 inline script" : `${count} inline scripts`;
+        elInlineCautionText.textContent = `Caution: ${countLabel} detected. Inline JavaScript is outside the supported external-resource verification scope.`;
+      }
+    } else {
+      elInlineCautionBanner.classList.add("hidden");
+    }
+  }
 
   // Update Evidence Fields
   fullPublisher = state.publisherAddress || "";

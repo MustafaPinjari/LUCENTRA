@@ -47,6 +47,8 @@ export interface TabVerificationState {
   }>;
   unobservedManifestPaths: string[];
   unverifiedObservedPaths: string[];
+  hasInlineScripts: boolean;
+  inlineScriptCount: number;
   manifest?: ReleaseManifest;
   summary: string;
   evaluatedAt: number;

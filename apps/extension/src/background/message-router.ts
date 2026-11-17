@@ -1,7 +1,7 @@
 /**
  * @file background/message-router.ts
  * @package @lucentra/extension
- * @description Central message dispatcher handling typed communication between components.
+ * @description Central message dispatcher handling typed communication between components and race-condition prevention.
  */
 
 import type { ExtensionMessage, MessageResponse } from "../types/messages.js";
@@ -15,6 +15,7 @@ export class MessageRouter {
   private verifierEngine: VerifierEngine;
   private badgeController: BadgeController;
   private tabScripts = new Map<number, { url: string; scripts: DiscoveredScript[] }>();
+  private tabSessions = new Map<number, number>();
 
   constructor(verifierEngine: VerifierEngine, badgeController: BadgeController) {
     this.verifierEngine = verifierEngine;
@@ -119,18 +120,56 @@ export class MessageRouter {
     }
   }
 
+  /**
+   * Executes verification for a tab while enforcing monotonic session identity
+   * to prevent stale asynchronous results from overwriting newer tab states.
+   */
   public async executeVerification(
     tabId: number,
     url: string,
     scripts: DiscoveredScript[]
   ): Promise<TabVerificationState> {
+    // 1. Assign and record a new monotonic verification session ID for this tab
+    const currentSessionId = (this.tabSessions.get(tabId) ?? 0) + 1;
+    this.tabSessions.set(tabId, currentSessionId);
+    this.tabScripts.set(tabId, { url, scripts });
+
+    // 2. Perform the asynchronous verification pipeline
     const result = await this.verifierEngine.verifyTab(tabId, url, scripts);
+
+    // 3. Stale Check: Has a new navigation occurred or has a new verification started?
+    if (this.tabSessions.get(tabId) !== currentSessionId) {
+      // Discard stale result: tab session superseded
+      return result;
+    }
+
+    // 4. URL Check: Does the tab's current registered URL still match?
+    if (this.tabScripts.get(tabId)?.url !== url) {
+      // Tab navigated away during verification: discard stale result
+      return result;
+    }
+
+    // 5. Atomic state update
     await saveTabVerificationState(tabId, result);
     this.badgeController.updateBadge(tabId, result.verificationState);
     return result;
   }
 
+  /**
+   * Invalidates any ongoing verification for a tab upon navigation.
+   */
+  public invalidateTabSession(tabId: number): void {
+    const nextSessionId = (this.tabSessions.get(tabId) ?? 0) + 1;
+    this.tabSessions.set(tabId, nextSessionId);
+    this.tabScripts.delete(tabId);
+  }
+
+  public getTabSession(tabId: number): number {
+    return this.tabSessions.get(tabId) ?? 0;
+  }
+
   public removeTab(tabId: number): void {
     this.tabScripts.delete(tabId);
+    this.tabSessions.delete(tabId);
   }
 }

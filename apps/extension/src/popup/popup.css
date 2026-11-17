@@ -487,3 +487,32 @@ body {
   color: #9ca3af;
   line-height: 1.4;
 }
+
+/* Global utility */
+.hidden {
+  display: none !important;
+}
+
+/* Inline Script Caution Banner (LUC-SEC-041-06) */
+.caution-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background-color: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #fbbf24;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.caution-banner .caution-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+
+.caution-banner .caution-text {
+  flex: 1;
+}

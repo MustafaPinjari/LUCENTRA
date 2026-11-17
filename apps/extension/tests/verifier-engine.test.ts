@@ -16,7 +16,7 @@ import {
   type ReleaseManifest,
 } from "@lucentra/core";
 import { VerifierEngine } from "../src/services/verifier-engine.js";
-import type { ExtensionConfig } from "../src/types/config.js";
+import { type ExtensionConfig, ANVIL_LOCAL_SIGNATURE_VERIFIER } from "../src/types/config.js";
 import type { DiscoveredScript } from "../src/types/resources.js";
 import type { VerificationStage } from "../src/types/verification.js";
 
@@ -69,6 +69,7 @@ test("VerifierEngine: executes full verification against mock backend and web se
     manifestHash,
     privateKey,
     chainId: 31337,
+    verifyingContract: ANVIL_LOCAL_SIGNATURE_VERIFIER,
   });
 
   // Mock Backend + Static Server
@@ -83,6 +84,9 @@ test("VerifierEngine: executes full verification against mock backend and web se
           registration_status: "REGISTERED_ONCHAIN",
           publisher_wallet: account.address,
           chain_id: 31337,
+          contracts: {
+            SignatureVerifier: ANVIL_LOCAL_SIGNATURE_VERIFIER,
+          },
           latest_release: {
             sequence: 1,
             version: "1.0.0",

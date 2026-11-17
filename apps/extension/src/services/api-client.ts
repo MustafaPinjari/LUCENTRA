@@ -16,7 +16,14 @@ export interface DomainVerificationStatusResponse {
     isRegistered?: boolean;
     publisherAddress?: Address;
     activeSigningKeys?: Address[];
+    verifyingContract?: string;
   };
+  contracts?: {
+    SignatureVerifier?: string;
+    PublisherRegistry?: string;
+    ReleaseAttestationVerifier?: string;
+  };
+  verifying_contract?: string;
   latest_release?: {
     sequence?: number;
     version?: string;
