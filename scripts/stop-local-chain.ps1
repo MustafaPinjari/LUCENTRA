@@ -33,7 +33,7 @@ if ($conn) {
     foreach ($ownerPid in $conn.OwningProcess | Select-Object -Unique) {
         $p = Get-Process -Id $ownerPid -ErrorAction SilentlyContinue
         if ($p -and ($p.ProcessName -like "*anvil*" -or $p.ProcessName -like "*forge*")) {
-            Write-Host "[INFO] Stopping lingering process on port 8545 (PID $ownerPid: $($p.ProcessName))..." -ForegroundColor Yellow
+            Write-Host "[INFO] Stopping lingering process on port 8545 (PID ${ownerPid}: $($p.ProcessName))..." -ForegroundColor Yellow
             Stop-Process -Id $ownerPid -Force -ErrorAction SilentlyContinue
             $stopped = $true
         }

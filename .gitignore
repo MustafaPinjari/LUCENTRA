@@ -129,4 +129,5 @@ logs/
 scratch/
 brain/
 .bin/
+.gemini/
 

@@ -240,7 +240,7 @@ export async function verifyRelease(
   }
 
   // Check 7: EAS Attestation UID validation (if supplied)
-  if (input.attestationUid !== undefined) {
+  if (input.attestationUid != null) {
     if (input.attestationUid.toLowerCase() === ZERO_BYTES32) {
       errors.push({
         code: "INVALID_HASH_FORMAT",

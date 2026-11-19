@@ -22,6 +22,9 @@ import type {
   VerifyReleaseResult,
 } from "./types.js";
 import { verifyRelease } from "./verifier.js";
+import { recoverReleaseSigner } from "./signature.js";
+import { canonicalizeManifest } from "./canonical.js";
+import { hashManifest } from "./hash.js";
 import { LucentraError } from "./errors.js";
 
 export interface LucentraDeploymentConfig {
@@ -352,6 +355,32 @@ export class LucentraChainClient {
         }
       } catch {
         isAttestationRevoked = false;
+      }
+    } else if (options.signature) {
+      try {
+        const canonical = canonicalizeManifest(options.manifest);
+        const manifestHash = hashManifest(canonical);
+        const recovered = await recoverReleaseSigner({
+          domain: options.manifest.domain,
+          version: options.manifest.version,
+          sequence: options.manifest.sequence,
+          previousManifestHash: options.manifest.previousManifestHash,
+          manifestHash,
+          timestamp: BigInt(options.manifest.createdAt),
+          expiresAt: BigInt(options.manifest.expiresAt),
+          signature: options.signature,
+          chainId: this.config.chainId,
+          verifyingContract: this.config.contracts.SignatureVerifier.address,
+        });
+        const isAuthorized = await this.isKeyAuthorized(
+          options.manifest.domain,
+          recovered
+        );
+        if (isAuthorized) {
+          authorizedKeys.push(recovered);
+        }
+      } catch {
+        // Ignored; verifyRelease will report signature recovery errors
       }
     }
 

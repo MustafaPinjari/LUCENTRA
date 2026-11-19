@@ -12,9 +12,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 REPO_ROOT = BASE_DIR.parent.parent
 
 # Load environment variables from .env if present
+root_env = REPO_ROOT / ".env"
+if root_env.exists():
+    load_dotenv(root_env)
+
 env_file = BASE_DIR / ".env"
 if env_file.exists():
-    load_dotenv(env_file)
+    load_dotenv(env_file, override=True)
 else:
     load_dotenv()
 
@@ -45,6 +49,7 @@ INSTALLED_APPS = [
     "apps.releases",
     "apps.attestations",
     "apps.audit",
+    "apps.ai",
 ]
 
 MIDDLEWARE = [

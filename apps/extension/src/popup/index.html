@@ -49,12 +49,46 @@
         <span id="inline-caution-text" class="caution-text">Inline scripts detected: Inline JavaScript is outside the supported external-resource verification scope.</span>
       </div>
 
-      <!-- Action Button -->
+      <!-- Action Buttons -->
       <div class="actions">
         <button id="btn-reverify" class="btn-primary" type="button">
           <span id="btn-spinner" class="spinner hidden"></span>
           <span id="btn-text">Verify Now</span>
         </button>
+        <button id="btn-explain-gemini" class="btn-ai" type="button">
+          <span id="ai-spinner" class="spinner hidden"></span>
+          <span id="ai-btn-text">✨ Explain with Gemini</span>
+        </button>
+      </div>
+
+      <!-- AI Security Insights Card -->
+      <div id="ai-result-card" class="ai-card hidden" role="region" aria-label="AI Security Insights">
+        <div class="ai-card-header">
+          <div class="ai-title-row">
+            <span class="ai-badge-gemini">Google Gemini AI</span>
+            <span id="ai-risk-badge" class="risk-badge risk-low">LOW RISK</span>
+          </div>
+          <h3 id="ai-headline" class="ai-headline">Security Analysis</h3>
+        </div>
+        <p id="ai-explanation" class="ai-text"></p>
+        
+        <div class="ai-detail-block">
+          <h4 class="ai-subheading">Technical Discrepancies</h4>
+          <p id="ai-discrepancies" class="ai-text-sub"></p>
+        </div>
+
+        <div class="ai-detail-block">
+          <h4 class="ai-subheading">Recommended Action</h4>
+          <p id="ai-recommendation" class="ai-text-sub"></p>
+        </div>
+
+        <div class="ai-footer">
+          <span id="ai-model-tag" class="ai-model-tag">Model: gemini-3.8-flash</span>
+          <span id="ai-timestamp" class="ai-timestamp"></span>
+        </div>
+        <div class="ai-limitations">
+          <span id="ai-limitations-text" class="ai-limitations-text"></span>
+        </div>
       </div>
 
       <!-- Collapsible Technical Evidence -->

@@ -61,6 +61,19 @@ export interface BackendAttestationRecord {
   transaction_hash: Hex;
 }
 
+export interface SecurityExplanationResponse {
+  headline: string;
+  risk_level: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" | "UNKNOWN";
+  detailed_explanation: string;
+  technical_discrepancy_summary: string;
+  recommended_action: string;
+  evidence_references: string[];
+  limitations: string;
+  model_id: string;
+  generated_at: string;
+  deterministic_state: string;
+}
+
 export interface BackendApiOptions {
   baseUrl: string;
   timeoutMs?: number;
@@ -175,6 +188,33 @@ export class LucentraApiClient {
     attestation_uid?: Hex;
   }): Promise<unknown> {
     return this.request<unknown>("/api/v1/releases/verify/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  public async getAiExplanation(payload: {
+    domain: string;
+    verification_state?: string;
+    publisher_registered?: boolean;
+    publisher_address?: string;
+    release_version?: string;
+    sequence?: number;
+    manifest_digest?: string;
+    attestation_uid?: string;
+    is_attested?: boolean;
+    is_revoked?: boolean;
+    resource_discrepancies?: Array<{
+      path: string;
+      status: string;
+      expected_hash?: string | null;
+      observed_hash?: string | null;
+    }>;
+    inline_script_count?: number;
+    has_inline_scripts?: boolean;
+    observation_completeness?: string;
+  }): Promise<SecurityExplanationResponse> {
+    return this.request<SecurityExplanationResponse>("/api/v1/ai/explanations/", {
       method: "POST",
       body: JSON.stringify(payload),
     });
